@@ -86,9 +86,10 @@ Cross-compile with `GOOS`/`GOARCH`; no cgo is required.
    **draft** GitHub Release with checksums, and uploads the artifacts.
 7. Inspect the draft (installers, sizes, notes), then publish it.
 
-The draft is deliberate: a bad tag must not silently reach users. A future
-`publish` job can flip `--draft=false` automatically once signing and smoke
-tests are mandatory.
+The draft is deliberate: a bad tag must not silently reach users. The workflow
+has an optional `publish` job that flips `--draft=false` when the repository
+variable `AUTO_PUBLISH` is `true`; enable it only after signing and smoke tests
+are mandatory.
 
 ## 5. GitHub Actions
 
