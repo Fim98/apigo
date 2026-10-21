@@ -1,0 +1,17 @@
+meta {
+  name: sample
+  type: collection
+}
+
+headers {
+  X-Collection: yes
+  Accept: application/json
+}
+
+vars:pre-request {
+  baseUrl: https://api.example.com
+}
+
+script:pre-request {
+  bru.setVar('collection', true);
+}

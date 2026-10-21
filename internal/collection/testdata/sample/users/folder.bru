@@ -1,0 +1,13 @@
+meta {
+  name: Users
+  seq: 1
+}
+
+headers {
+  X-Users: yes
+  Accept: text/plain
+}
+
+auth:bearer {
+  token: {{usersToken}}
+}
