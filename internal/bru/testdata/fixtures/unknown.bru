@@ -1,0 +1,26 @@
+meta {
+  name: Unknown blocks
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.example.com/ping
+  auth: none
+}
+
+future:block {
+  keep: this
+  nested: {
+    deep: true
+  }
+}
+
+settings {
+  timeout: 5000
+}
+
+another:extension [
+  one
+  two
+]

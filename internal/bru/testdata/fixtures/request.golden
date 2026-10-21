@@ -1,0 +1,80 @@
+meta {
+  name: Create user
+  type: http
+  seq: 3
+  tags: [
+    smoke
+    users
+  ]
+}
+
+post {
+  url: {{baseUrl}}/users/:id
+  body: json
+  auth: inherit
+}
+
+params:query {
+  verbose: true
+  ~debug: 1
+}
+
+params:path {
+  id: 42
+}
+
+headers {
+  Content-Type: application/json
+  ~X-Debug: 1
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Ada",
+    "tags": ["math"]
+  }
+}
+
+vars:pre-request {
+  baseUrl: https://api.example.com
+  @number
+  retries: 3
+  @boolean
+  debug: false
+}
+
+assert {
+  res.status: eq 200
+  res.body.name: contains Ada
+}
+
+script:pre-request {
+  const token = bru.getEnvVar('token');
+}
+
+script:post-response {
+  console.log(res.getStatus());
+}
+
+tests {
+  test('returns a user', function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+settings {
+  encodeUrl: true
+  followRedirects: true
+  maxRedirects: 5
+  timeout: 30000
+}
+
+docs {
+  # Users API
+
+  Creates a user.
+}

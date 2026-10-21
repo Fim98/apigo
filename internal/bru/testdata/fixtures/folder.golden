@@ -1,0 +1,20 @@
+meta {
+  name: Users
+  seq: 1
+  tags: [
+    api
+  ]
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:basic {
+  username: admin
+  password: {{password}}
+}
+
+script:pre-request {
+  bru.setVar('started', Date.now());
+}

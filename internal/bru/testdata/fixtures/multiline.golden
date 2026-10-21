@@ -1,0 +1,28 @@
+meta {
+  name: Multiline
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.example.com/upload
+  body: multipartForm
+}
+
+headers {
+  "X-Weird: Key": value with: colon
+  Authorization: Bearer abc
+}
+
+body:multipart-form {
+  field: value
+  upload: @file(/tmp/a.txt) @contentType(text/plain)
+  photo: @file(/tmp/a.png|/tmp/b.png)
+  ~skip: nothing
+}
+
+body:xml {
+  <root>
+    <child>text</child>
+  </root>
+}
