@@ -81,7 +81,10 @@ it at the end of every session, then verify with `make verify`.
       `yaml.Node` tree (unknown keys, comments and order survive), and
       `internal/collection/yaml.go` maps `opencollection.yml`, `folder.yml`, item
       `.yml` and `environments/*.yml` onto the same model as `.bru`. The loader
-      detects the format, prefers YAML when both markers exist and warns.
+      detects the format, prefers YAML when both markers exist and warns, and
+      skips `script`/`app` items with a warning instead of inventing an empty
+      request. The parsed document stays on `Request.Source`/`Folder.Source`, so
+      keys the model does not read are still reachable for the writer.
 - [x] Watcher (M1-09): recursive `fsnotify` watcher with a per-path debounce,
       create/update/remove events, `IsDir` preserved for removed directories,
       `TooLarge` for files above the 2.5 MiB cap, new subdirectories watched as
@@ -191,8 +194,13 @@ test covers the nine vendored files.
   `after-response`, `tests` and `grpc:*`; post-response variables are
   `set-variable` actions. Verified in docs/OPENCOLLECTION.md §8.
 - **YAML unknown data** stays in the `yaml.Node` tree inside
-  `internal/opencollection`; the model only takes the fields it understands, and
-  the M1-14 writer patches the tree so unmodelled fields survive a save.
+  `internal/opencollection`, and each YAML request/folder keeps its
+  `*opencollection.Document` on `Source`. The M1-14 writer patches that tree so
+  unmodelled fields survive a save. Limits are listed in OPENCOLLECTION §8.6:
+  merge keys are not expanded, only the first YAML document is read, `docs.type`
+  is not modelled.
+- **Model additions from M1-13**: `Meta.Description`, `Folder.VarsPost` (from
+  folder/collection `request.actions`), `Request.Source`/`Folder.Source`.
 - **Text blocks keep their source indentation.** `TextBlock.Text` and
   `Request.Docs`/`Scripts`/`Tests` store block content exactly as written (the
   closing brace must be at column 1). Display and script execution call
