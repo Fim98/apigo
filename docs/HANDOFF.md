@@ -10,7 +10,7 @@ it at the end of every session, then verify with `make verify`.
 - Commits: `git log --oneline`; foundation `f199eb4`, then OpenCollection notes
   and product research corrections (latest docs commit).
 - Version: `0.1.0` (foundation)
-- Milestone: **M0 — Foundation** complete except owner-blocked items
+- Milestone: **M0 — Foundation** files complete; CI/release validation needs a remote
 - Next milestone: **M1 — Language & collection store**
 - Working tree: clean
 

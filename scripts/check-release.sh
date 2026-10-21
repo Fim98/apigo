@@ -5,6 +5,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 version=$(jq -r .version mygo.json)
+package_version=$(jq -r .version package.json)
 tag=${1:-${GITHUB_REF_NAME:-}}
 
 if [ -z "$tag" ]; then
@@ -14,6 +15,11 @@ fi
 if [ -z "$tag" ]; then
   printf 'usage: %s <vX.Y.Z> (or run on a tag)\n' "$0" >&2
   exit 2
+fi
+
+if [ "$package_version" != "$version" ]; then
+  printf '✗ package.json version %s does not match mygo.json %s\n' "$package_version" "$version" >&2
+  exit 1
 fi
 
 if [ "$tag" != "v$version" ]; then
