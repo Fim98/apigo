@@ -1,14 +1,15 @@
 # OpenCollection YAML (Bruno 2.x)
 
-Status: **provisional**. Bruno 2.0 ships two collection formats:
+Status: **verified for reading**. Bruno 2.0 ships two collection formats:
 
 - `.bru` + `bruno.json` (the format described in [BRU_FORMAT.md](BRU_FORMAT.md)).
 - OpenCollection YAML (`opencollection.yml` + `folder.yml` + item `.yml` files),
   the default for new collections in Bruno 2.x.
 
-apigo must edit both. M1-13 implements the reader, M1-14 the writer; M8 adds
-bidirectional migration. This document records what is known from the Bruno
-2.0.0 source; it is verified against fixtures in M1-13 before implementation.
+apigo must edit both. M1-13 (reader) is implemented in
+`internal/opencollection` (YAML document layer) and `internal/collection/yaml.go`
+(schema mapping); M1-14 adds the writer, M8 the migration. §8 records the shapes
+verified against Bruno fixtures, which corrected several guesses in §3.
 
 ## 1. Format detection
 
@@ -82,6 +83,8 @@ extensions:
 
 - `opencollection` is the format version (`1.0.0` in the target snapshot).
 - `info.name` is the display name.
+- `request` holds the defaults every item inherits: `headers`, `auth`,
+  `variables`, `scripts`, `actions`.
 - `config` mirrors `bruno.json` (proxy, certificates, scripts, security).
 - `extensions.bruno` holds Bruno-specific settings (ignore list, presets).
 - Unknown keys must be preserved.
@@ -109,7 +112,7 @@ http:
       type: path
   body:
     type: json
-    content: |
+    data: |
       {}
   auth:
     type: bearer
@@ -164,10 +167,12 @@ guessed.
 
 ## 4. Folders and environments
 
-- Folders have their own YAML with `info.type: folder`, plus headers/auth/vars/
-  scripts and child ordering.
-- Environments live under `environments/<name>.yml` with variables, secrets and
-  `extends`; the shape follows the OpenCollection environment types.
+- Folders have their own `folder.yml` with `info.type: folder`, and put
+  headers/auth/variables/scripts under a `request` block, exactly like the
+  collection root.
+- Environments live under `environments/<name>.yml`:
+  `name`, optional `extends` (string or list), `color`, `variables` and
+  `externalSecrets`. A secret is `{name, secret: true}` with no value on disk.
 - `mock` configuration and `script`/`app` items exist in the format; preserve
   them even before the UI supports them.
 
@@ -201,16 +206,125 @@ The printer for each format is separate.
 
 ## 7. Open questions for M1-13
 
-1. ~~Which format does Bruno 2.0 create by default?~~ **Answered:** filestore
-   defaults to `yml`; existing `.bru` collections keep their format. Support both.
-2. Exact `body`, `auth`, `assertions`, `actions` and `scripts` YAML shapes (use
-   `packages/bruno-filestore/src/formats/yml/items/*` and its specs).
-3. How `extensions.bruno` interacts with top-level `config` when both exist.
-4. Environment `extends` syntax and secret representation (`name` + `secret: true`,
-   no value on disk).
-5. Folder file name is `folder.yml`; collection root settings are `collection.yml`;
-   verify nested naming and the `mock` block.
+All answered in §8:
 
-Answer these from fixtures in
-`packages/bruno-filestore/src/formats/yml/**/*.spec.ts` and record the results
-here before writing the parser.
+1. ~~Which format does Bruno 2.0 create by default?~~ filestore defaults to
+   `yml`; existing `.bru` collections keep their format. Both are first-class.
+2. ~~Exact `body`, `auth`, `assertions`, `actions` and `scripts` YAML shapes?~~
+   See §8.1–§8.4.
+3. ~~`extensions.bruno` vs top-level `config`?~~ `config` is the format's own
+   block; `extensions.bruno` only holds Bruno-only settings (ignore list,
+   presets). Both are preserved as raw nodes.
+4. ~~Environment `extends` syntax and secret representation?~~ §8.5.
+5. ~~Folder file name?~~ `folder.yml` (or `.yaml`); the root file is
+   `opencollection.yml`. There is no `collection.yml` in the 2.0.0 snapshot this
+   document was verified against, despite earlier notes.
+
+## 8. Shapes verified against Bruno fixtures (M1-13)
+
+Verified by reading the fixtures vendored in
+`internal/collection/testdata/bruno-yaml/` and the 789-file Bruno checkout under
+`~/Documents/bruno`.
+
+### 8.1 Item envelope
+
+```yaml
+info: { name, type, seq, tags, description }
+http: { method, url, headers, params, body, auth } # or graphql/grpc/websocket
+runtime: { variables, scripts, assertions, actions }
+settings: { encodeUrl, timeout, followRedirects, maxRedirects, forwardAuthorizationHeader }
+docs: { content, type }
+examples: [...]
+```
+
+- `info.type` is `http`, `graphql`, `grpc`, `websocket`, `folder`, `script`,
+  `app`. apigo maps the first four onto `RequestType`; the rest are preserved.
+- The protocol block is named after the type (`graphql:`, `grpc:`,
+  `websocket:`), and carries the same field names as `http:`.
+
+### 8.2 Body
+
+```yaml
+body:
+  type: json # json | text | xml | sparql | form-urlencoded | multipart-form | file
+  data: |- # raw content for json/text/xml/sparql
+    {"a": 1}
+```
+
+- Raw bodies use **`data`**, not `content` (earlier drafts had this wrong).
+- GraphQL bodies omit `type` and use `query` + `variables` instead; the reader
+  treats a body with `query` as GraphQL.
+- `form-urlencoded` and `multipart-form` bodies put a list of
+  `{name, value, disabled, description}` entries in `data`; multipart file
+  entries add `files: [path]` and `contentType`.
+- `file` bodies are a list of `{path, disabled, contentType}`.
+
+### 8.3 Auth
+
+```yaml
+auth:
+  type: bearer
+  token: '{{token}}'
+```
+
+- `type` is the mode; every other scalar field is a mode parameter, in source
+  order. `type: none` and `type: inherit` are written as bare scalars
+  (`auth: inherit`), so the reader accepts both shapes.
+- apigo maps this onto `Auth{Mode, Params}` without interpreting the fields, so a
+  new Bruno auth mode survives a read.
+
+### 8.4 Scripts, assertions, actions
+
+```yaml
+runtime:
+  scripts:
+    - type: before-request # before-request | after-response | tests | grpc:*
+      code: |-
+        bru.setVar('x', 1);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: '200'
+      disabled: false
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector: { expression: res.body.id, method: jsonq }
+      variable: { name: userId, scope: runtime } # scope: runtime | request
+```
+
+- Script types are `before-request`, `after-response`, `tests` and the four
+  `grpc:*` hooks. The reader also accepts `pre-request`/`post-response`, the
+  `.bru` spelling, in case a file uses it.
+- Post-response variables are `set-variable` actions; `selector.expression` is
+  the value and `variable.scope: request` marks a local variable.
+
+### 8.5 Environments
+
+```yaml
+name: Local
+extends: Base # or a list
+color: '#4caf50'
+variables:
+  - name: host
+    value: http://localhost:8081
+  - name: retries
+    value: { type: number, data: '3' }
+  - name: token
+    secret: true # no value on disk
+externalSecrets:
+  type: 1password
+  variables: [{ name: apiKey, value: '' }]
+```
+
+- `extends` accepts a scalar or a list, matching the `.bru` environment file.
+- A typed value is `{type, data}`; `string` is the implicit default and is
+  omitted by the writer.
+
+### 8.6 What the reader does with unknown data
+
+`internal/opencollection` keeps the whole `yaml.Node` tree, including comments,
+key order and unknown keys. `internal/collection` maps the fields it models onto
+`Request`/`Folder`/`Environment` and leaves the rest in the document. The M1-14
+writer re-reads the file, patches the modelled nodes and writes the tree back, so
+unmodelled fields survive a save without being copied into the model.

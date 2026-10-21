@@ -301,6 +301,9 @@ func (n *Node) Chain() []*Node {
 // Collection is a loaded collection.
 type Collection struct {
 	Root string
+	// Format records how the collection is stored: `.bru` files or
+	// OpenCollection YAML.
+	Format Format
 	// Config is bruno.json.
 	Config Config
 	// Defaults holds collection.bru: the headers, auth, vars and scripts every

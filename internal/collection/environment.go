@@ -181,3 +181,50 @@ func ResolveEnvironment(env *Environment, byName map[string]*Environment) ([]Var
 	}
 	return merged, nil
 }
+
+// loadEnvironments reads the environment files for a collection format.
+func loadEnvironments(ctx context.Context, root string, format Format) ([]*Environment, error) {
+	if format == FormatYAML {
+		return loadYAMLEnvironments(ctx, root)
+	}
+	return LoadEnvironments(ctx, root)
+}
+
+// loadYAMLEnvironments reads environments/*.yml and *.yaml.
+func loadYAMLEnvironments(ctx context.Context, root string) ([]*Environment, error) {
+	dir := filepath.Join(root, EnvDir)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	var envs []*Environment
+	for _, entry := range entries {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		name := entry.Name()
+		if entry.IsDir() || strings.HasPrefix(name, ".") {
+			continue
+		}
+		if !strings.HasSuffix(name, ".yml") && !strings.HasSuffix(name, ".yaml") {
+			continue
+		}
+		path := filepath.Join(dir, name)
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		base := strings.TrimSuffix(strings.TrimSuffix(name, ".yml"), ".yaml")
+		env, err := ParseYAMLEnvironment(path, base, src)
+		if err != nil {
+			return nil, err
+		}
+		envs = append(envs, env)
+	}
+	sort.SliceStable(envs, func(i, j int) bool { return envs[i].Name < envs[j].Name })
+	return envs, nil
+}

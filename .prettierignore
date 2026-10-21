@@ -11,3 +11,7 @@ package-lock.json
 .agents/skills/
 .workbuddy/
 .scratch/
+
+# Vendored third-party fixtures stay byte-identical to upstream
+internal/bru/testdata/bruno/
+internal/collection/testdata/bruno-yaml/

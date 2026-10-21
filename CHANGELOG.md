@@ -19,6 +19,15 @@ All notable changes to apigo are documented here. The format is based on
   ignore rules, `seq` ordering and a 2.5 MiB per-file cap.
 - Environment resolution with `extends` chains, cycle detection and
   `vars:secret` names whose values never touch the file.
+- OpenCollection YAML reader (`internal/opencollection`, `internal/collection`):
+  `opencollection.yml`, `folder.yml`, item `.yml` and environment `.yml` files
+  load into the same request/folder/environment model as `.bru`, with unknown
+  keys and comments preserved through `yaml.Node` (ADR-0010). The loader picks
+  YAML when both formats are present and warns.
+- OpenCollection shape notes verified against Bruno fixtures: raw bodies use
+  `data:`, auth may be a bare scalar, scripts are `before-request` /
+  `after-response` / `tests` / `grpc:*`, environments carry `extends`, `color`,
+  `secret: true` and `externalSecrets`.
 - File watching (`internal/collection`): recursive `fsnotify` watcher with a
   per-path debounce window, create/update/remove events, the loader's ignore
   rules, and clean shutdown through `Close` or a cancelled context (ADR-0009).

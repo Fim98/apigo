@@ -18,5 +18,6 @@
     ".agents/skills/**",
     ".workbuddy/**",
     ".scratch/**",
+    "internal/**/testdata/**",
   ],
 }

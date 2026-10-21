@@ -49,30 +49,8 @@ func Load(ctx context.Context, root string) (*Collection, error) {
 		return nil, err
 	}
 
-	c := &Collection{Root: abs}
-
-	if src, err := os.ReadFile(filepath.Join(abs, ConfigFile)); err == nil {
-		cfg, err := ParseConfig(filepath.Join(abs, ConfigFile), src)
-		if err != nil {
-			c.Warnings = append(c.Warnings, err)
-		} else {
-			c.Config = cfg
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return nil, err
-	}
-
-	if src, err := os.ReadFile(filepath.Join(abs, CollectionFile)); err == nil {
-		f, err := bru.Parse(filepath.Join(abs, CollectionFile), src)
-		if err != nil {
-			c.Warnings = append(c.Warnings, err)
-		}
-		if f != nil {
-			defaults := FolderFromFile(f)
-			defaults.Path = filepath.Join(abs, CollectionFile)
-			c.Defaults = defaults
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
+	c := &Collection{Root: abs, Format: DetectFormat(abs)}
+	if err := c.loadConfig(abs); err != nil {
 		return nil, err
 	}
 
@@ -101,13 +79,71 @@ func Load(ctx context.Context, root string) (*Collection, error) {
 	c.root = rootNode
 	c.Tree = tree
 
-	envs, err := LoadEnvironments(ctx, abs)
+	envs, err := loadEnvironments(ctx, abs, c.Format)
 	if err != nil {
 		c.Warnings = append(c.Warnings, err)
 	}
 	c.Environments = envs
 
 	return c, nil
+}
+
+// loadConfig reads the collection-level files for the collection's format:
+// opencollection.yml, or bruno.json plus collection.bru.
+func (c *Collection) loadConfig(abs string) error {
+	if c.Format == FormatYAML {
+		cfgPath, ok := openCollectionPath(abs)
+		if !ok {
+			return fmt.Errorf("%w: %s has no %s", ErrNotFound, abs, OpenCollectionFile)
+		}
+		src, err := os.ReadFile(cfgPath)
+		if err != nil {
+			return err
+		}
+		cfg, defaults, err := ParseYAMLCollection(cfgPath, src)
+		if err != nil {
+			c.Warnings = append(c.Warnings, err)
+			return nil
+		}
+		c.Config = cfg
+		c.Defaults = defaults
+		if _, statErr := os.Stat(filepath.Join(abs, ConfigFile)); statErr == nil {
+			c.Warnings = append(c.Warnings, fmt.Errorf("%s: %s and %s both exist; reading the OpenCollection YAML format", abs, OpenCollectionFile, ConfigFile))
+		}
+		return nil
+	}
+
+	path := filepath.Join(abs, ConfigFile)
+	src, err := os.ReadFile(path)
+	switch {
+	case err == nil:
+		cfg, cfgErr := ParseConfig(path, src)
+		if cfgErr != nil {
+			c.Warnings = append(c.Warnings, cfgErr)
+		} else {
+			c.Config = cfg
+		}
+	case !errors.Is(err, os.ErrNotExist):
+		return err
+	}
+
+	collectionPath := filepath.Join(abs, CollectionFile)
+	src, err = os.ReadFile(collectionPath)
+	switch {
+	case err == nil:
+		f, parseErr := bru.Parse(collectionPath, src)
+		if parseErr != nil {
+			c.Warnings = append(c.Warnings, parseErr)
+		}
+		if f != nil {
+			defaults := FolderFromFile(f)
+			defaults.Path = collectionPath
+			c.Defaults = defaults
+		}
+	case !errors.Is(err, os.ErrNotExist):
+		return err
+	}
+	return nil
 }
 
 // loadDir reads one directory's entries, recursively.
@@ -139,20 +175,11 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 			folder := &Folder{Meta: Meta{Name: name, Type: string(TypeHTTP), Seq: 1}}
 			folder.Path = filepath.Join(root, filepath.FromSlash(childRel))
 			folder.RelPath = childRel
-			if src, err := os.ReadFile(filepath.Join(folder.Path, FolderFile)); err == nil {
-				if f, perr := bru.Parse(filepath.Join(folder.Path, FolderFile), src); perr == nil {
-					parsed := FolderFromFile(f)
-					parsed.Path = folder.Path
-					parsed.RelPath = childRel
-					if parsed.Meta.Name == "" {
-						parsed.Meta.Name = name
-					}
-					folder = parsed
-				} else {
-					c.Warnings = append(c.Warnings, perr)
-				}
-			} else if !errors.Is(err, os.ErrNotExist) {
-				c.Warnings = append(c.Warnings, err)
+			if parsed, perr := loadFolderMeta(folder, c.Format); perr != nil {
+				c.Warnings = append(c.Warnings, perr)
+			} else if parsed != nil {
+				parsed.Meta.Name = orDefault(parsed.Meta.Name, name)
+				folder = parsed
 			}
 
 			node := &Node{Name: folder.Meta.Name, Path: folder.Path, RelPath: childRel, Folder: folder, Parent: parent}
@@ -165,10 +192,10 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 			continue
 		}
 
-		if !strings.HasSuffix(name, ".bru") || name == CollectionFile || name == FolderFile {
+		if !isRequestFile(name, c.Format) {
 			continue
 		}
-		req, err := loadRequest(filepath.Join(root, filepath.FromSlash(childRel)), childRel)
+		req, err := loadRequest(filepath.Join(root, filepath.FromSlash(childRel)), childRel, c.Format)
 		if err != nil {
 			c.Warnings = append(c.Warnings, err)
 			continue
@@ -187,7 +214,7 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 }
 
 // loadRequest reads one request file, enforcing the size cap.
-func loadRequest(path, rel string) (*Request, error) {
+func loadRequest(path, rel string, format Format) (*Request, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -199,11 +226,63 @@ func loadRequest(path, rel string) (*Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := ParseRequest(path, rel, src)
+	if format == FormatYAML {
+		return ParseYAMLRequest(path, rel, src)
+	}
+	return ParseRequest(path, rel, src)
+}
+
+// loadFolderMeta reads folder.bru, folder.yml or nothing.
+func loadFolderMeta(base *Folder, format Format) (*Folder, error) {
+	if format == FormatYAML {
+		path, ok := yamlFolderPath(base.Path)
+		if !ok {
+			return nil, nil
+		}
+		src, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		return ParseYAMLFolder(path, base.RelPath, src)
+	}
+
+	path := filepath.Join(base.Path, FolderFile)
+	src, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	f, err := bru.Parse(path, src)
 	if err != nil {
 		return nil, err
 	}
-	return req, nil
+	folder := FolderFromFile(f)
+	folder.Path = base.Path
+	folder.RelPath = base.RelPath
+	return folder, nil
+}
+
+// isRequestFile reports whether a directory entry is a request in the collection
+// format.
+func isRequestFile(name string, format Format) bool {
+	if format == FormatYAML {
+		switch name {
+		case OpenCollectionFile, OpenCollectionAltFile, YAMLFolderFile, YAMLFolderAltFile:
+			return false
+		}
+		return strings.HasSuffix(name, ".yml") || strings.HasSuffix(name, ".yaml")
+	}
+	return strings.HasSuffix(name, ".bru") && name != CollectionFile && name != FolderFile
+}
+
+// orDefault returns value when non-empty, otherwise def.
+func orDefault(value, def string) string {
+	if value != "" {
+		return value
+	}
+	return def
 }
 
 // sortNodes orders entries by seq then name, folders and requests together, the
@@ -231,9 +310,9 @@ func nodeSeq(n *Node) int {
 
 // LoadRequestFile loads a single request file outside a collection.
 func LoadRequestFile(path string) (*Request, error) {
-	req, err := loadRequest(path, filepath.Base(path))
-	if err != nil {
-		return nil, err
+	format := FormatBRU
+	if strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml") {
+		format = FormatYAML
 	}
-	return req, nil
+	return loadRequest(path, filepath.Base(path), format)
 }

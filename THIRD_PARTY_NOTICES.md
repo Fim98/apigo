@@ -16,8 +16,9 @@ derived from the open-source Bruno project:
 
 Bruno source code is **not** copied into apigo. The Go implementation is
 clean-room; only file-format behavior and test data are used for compatibility.
-When fixtures are vendored under `internal/**/testdata/bruno/`, they retain their
-original license notice below.
+When fixtures are vendored under `internal/**/testdata/bruno/` or
+`internal/**/testdata/bruno-yaml/`, they retain their original license notice
+below.
 
 ```text
 MIT License
@@ -67,8 +68,13 @@ configuration they read lives in `docs/agents/` and is this project's own work.
 
 ## Go dependencies
 
-`github.com/fsnotify/fsnotify` v1.9.0 is the first non-tool runtime dependency
-(ADR-0009). It is BSD-3-Clause, pure Go and cgo-free; its license ships inside the
-module. Other module licenses are recorded by `go list -m -json all` and are
-included in the SBOM once the release pipeline adds it (M12). New dependencies
-must pass a license review (see [docs/SECURITY.md](docs/SECURITY.md)).
+Runtime dependencies and their licenses:
+
+- `github.com/fsnotify/fsnotify` v1.9.0 — BSD-3-Clause, pure Go (ADR-0009).
+- `gopkg.in/yaml.v3` v3.0.1 — Apache-2.0 with MIT-licensed portions, pure Go
+  (ADR-0010).
+
+Licenses ship inside the modules. Other module licenses are recorded by
+`go list -m -json all` and are included in the SBOM once the release pipeline adds
+it (M12). New dependencies must pass a license review (see
+[docs/SECURITY.md](docs/SECURITY.md)).

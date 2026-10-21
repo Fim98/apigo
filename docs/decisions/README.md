@@ -3,17 +3,18 @@
 One file per decision that changes the architecture, a public contract or the
 release process. Use [TEMPLATE.md](TEMPLATE.md).
 
-| ADR                                   | Decision                        | Status   |
-| ------------------------------------- | ------------------------------- | -------- |
-| [0001](ADR-0001-native-ui.md)         | Native UI with MyGo             | Accepted |
-| [0002](ADR-0002-bru-compatibility.md) | Clean-room `.bru` compatibility | Accepted |
-| [0003](ADR-0003-scripting-engine.md)  | goja for user scripts           | Accepted |
-| [0004](ADR-0004-http-transport.md)    | `net/http` request execution    | Accepted |
-| [0005](ADR-0005-git-cli.md)           | Git through the `git` CLI       | Accepted |
-| [0006](ADR-0006-cli-binary.md)        | Separate CLI binary             | Accepted |
-| [0007](ADR-0007-local-storage.md)     | bbolt for local state           | Accepted |
-| [0008](ADR-0008-tabbed-workbench.md)  | Single-window tabbed workbench  | Accepted |
-| [0009](ADR-0009-file-watching.md)     | `fsnotify` for file watching    | Accepted |
+| ADR                                     | Decision                        | Status   |
+| --------------------------------------- | ------------------------------- | -------- |
+| [0001](ADR-0001-native-ui.md)           | Native UI with MyGo             | Accepted |
+| [0002](ADR-0002-bru-compatibility.md)   | Clean-room `.bru` compatibility | Accepted |
+| [0003](ADR-0003-scripting-engine.md)    | goja for user scripts           | Accepted |
+| [0004](ADR-0004-http-transport.md)      | `net/http` request execution    | Accepted |
+| [0005](ADR-0005-git-cli.md)             | Git through the `git` CLI       | Accepted |
+| [0006](ADR-0006-cli-binary.md)          | Separate CLI binary             | Accepted |
+| [0007](ADR-0007-local-storage.md)       | bbolt for local state           | Accepted |
+| [0008](ADR-0008-tabbed-workbench.md)    | Single-window tabbed workbench  | Accepted |
+| [0009](ADR-0009-file-watching.md)       | `fsnotify` for file watching    | Accepted |
+| [0010](ADR-0010-opencollection-yaml.md) | YAML for OpenCollection         | Accepted |
 
 Rules:
 

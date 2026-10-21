@@ -10,6 +10,7 @@ tool (
 require (
 	github.com/egoist/mygo v0.6.2
 	github.com/fsnotify/fsnotify v1.9.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
