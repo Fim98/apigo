@@ -13,6 +13,7 @@ release process. Use [TEMPLATE.md](TEMPLATE.md).
 | [0006](ADR-0006-cli-binary.md)        | Separate CLI binary             | Accepted |
 | [0007](ADR-0007-local-storage.md)     | bbolt for local state           | Accepted |
 | [0008](ADR-0008-tabbed-workbench.md)  | Single-window tabbed workbench  | Accepted |
+| [0009](ADR-0009-file-watching.md)     | `fsnotify` for file watching    | Accepted |
 
 Rules:
 

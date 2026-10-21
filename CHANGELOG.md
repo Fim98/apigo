@@ -19,6 +19,9 @@ All notable changes to apigo are documented here. The format is based on
   ignore rules, `seq` ordering and a 2.5 MiB per-file cap.
 - Environment resolution with `extends` chains, cycle detection and
   `vars:secret` names whose values never touch the file.
+- File watching (`internal/collection`): recursive `fsnotify` watcher with a
+  per-path debounce window, create/update/remove events, the loader's ignore
+  rules, and clean shutdown through `Close` or a cancelled context (ADR-0009).
 - `apigo-cli fmt` (rewrite or `--check` `.bru` files in canonical form) and
   `apigo-cli inspect` (tree and `--json` summary of a collection).
 - Parser conformance corpus: hand-written fixtures with golden output plus

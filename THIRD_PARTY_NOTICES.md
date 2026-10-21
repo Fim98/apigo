@@ -67,6 +67,8 @@ configuration they read lives in `docs/agents/` and is this project's own work.
 
 ## Go dependencies
 
-Go module licenses are recorded by `go list -m -json all` and are included in
-the SBOM once the release pipeline adds it (M12). New dependencies must pass a
-license review (see [docs/SECURITY.md](docs/SECURITY.md)).
+`github.com/fsnotify/fsnotify` v1.9.0 is the first non-tool runtime dependency
+(ADR-0009). It is BSD-3-Clause, pure Go and cgo-free; its license ships inside the
+module. Other module licenses are recorded by `go list -m -json all` and are
+included in the SBOM once the release pipeline adds it (M12). New dependencies
+must pass a license review (see [docs/SECURITY.md](docs/SECURITY.md)).
