@@ -51,6 +51,20 @@ SOFTWARE.
 
 MyGo is used as a Go module and pinned as a `tool` in `go.mod`.
 
+## Matt Pocock engineering skills
+
+Agent skill definitions vendored into `.agents/skills/`:
+
+- Project: https://github.com/mattpocock/skills
+- Version: 1.3.1, commit `5beb35b040e3de97e54fa9e386d7e42d15c295c2`
+  (2026-10-19)
+- Path vendored: `skills/engineering/` (20 skills, unmodified copies)
+- License: MIT, Copyright (c) 2026 Matt Pocock
+
+These are instructions for coding agents, not compiled code. They are not part
+of the app; removing the directory removes the dependency. The per-repo
+configuration they read lives in `docs/agents/` and is this project's own work.
+
 ## Go dependencies
 
 Go module licenses are recorded by `go list -m -json all` and are included in

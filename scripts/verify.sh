@@ -38,6 +38,6 @@ printf '→ Prettier\n'
 npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 printf '→ markdownlint\n'
-npx --no-install markdownlint-cli2 "**/*.md" "#node_modules" "#build" "#dist" "#.mygo" "#CHANGELOG.md" "#docs/research"
+npx --no-install markdownlint-cli2 "**/*.md" "#node_modules" "#build" "#dist" "#.mygo" "#CHANGELOG.md" "#docs/research" "#.agents/skills" "#.workbuddy" "#.scratch"
 
 printf '\n✓ verify passed\n'

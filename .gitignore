@@ -35,6 +35,12 @@ mygo-update.pub
 .env.*
 !.env.example
 
+# Agent scratch: uncommitted working notes and pre-issue material
+/.scratch/
+
+# Local agent state (memory, skill links); the skills themselves live in .agents/
+/.workbuddy/
+
 # Editors and OS
 .DS_Store
 .idea/

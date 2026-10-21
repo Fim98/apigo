@@ -15,5 +15,8 @@
     ".mygo/**",
     "CHANGELOG.md",
     "docs/research/**",
+    ".agents/skills/**",
+    ".workbuddy/**",
+    ".scratch/**",
   ],
 }

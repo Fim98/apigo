@@ -8,6 +8,9 @@ All notable changes to apigo are documented here. The format is based on
 
 ### Added
 
+- Agent workflow: 20 engineering skills vendored under `.agents/skills/`, with
+  per-repo configuration in `docs/agents/` (issue tracker, triage labels, domain
+  docs) and a seeded root `GLOSSARY.md`.
 - Product-level research inventory of Bruno 2.0.0 (UI, collections, formats,
   import/export, Git, persistence) and a provisional OpenCollection YAML spec.
 - Capability matrix corrections: dual-format collections, Git panel/history/i18n

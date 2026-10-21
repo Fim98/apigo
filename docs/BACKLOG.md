@@ -32,6 +32,8 @@ Rules:
 | M0-11 | Create GitHub repository, push `main`, set secrets, enable branch protection                        | M0-10     | Remote exists; CI green; secrets documented                         | blocked |
 | M0-12 | Validate a real `mygo build` locally and record artifact names                                      | M0-02     | `go tool mygo build` succeeds; output paths in HANDOFF              | done    |
 
+| M0-13 | Vendor the Matt Pocock engineering skills and configure `docs/agents/` for this repo | — | 20 skills under `.agents/skills/`; tracker, triage labels and ADR path in `docs/agents/` match reality | done |
+
 ## M1 — Language & collection store
 
 | ID    | Task                                                                                                            | Deps  | Acceptance / evidence                                                                       | Status |

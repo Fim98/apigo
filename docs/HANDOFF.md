@@ -12,7 +12,7 @@ it at the end of every session, then verify with `make verify`.
 - Version: `0.1.0` (foundation)
 - Milestone: **M0 — Foundation** files complete; CI/release validation needs a remote
 - Next milestone: **M1 — Language & collection store**
-- Working tree: clean
+- Working tree: uncommitted M0-13 (agent skills, `docs/agents/`, `GLOSSARY.md`)
 
 ## What is done
 
@@ -35,6 +35,23 @@ it at the end of every session, then verify with `make verify`.
 - [x] Research: `docs/research/bruno-engine-inventory.md`,
       `docs/research/bruno-product-inventory.md`,
       `docs/research/mygo-capabilities.md`.
+
+### Agent workflow (M0-13)
+
+- [x] 20 engineering skills vendored from `mattpocock/skills` 1.3.1 (commit
+      `5beb35b`) under `.agents/skills/`; notice in `THIRD_PARTY_NOTICES.md`.
+- [x] `docs/agents/issue-tracker.md` — GitHub Issues, **not live** until M0-11;
+      records the `Backlog:` id rule that keeps issues and `BACKLOG.md` aligned.
+- [x] `docs/agents/triage-labels.md` — five canonical roles mapped to backlog
+      statuses (`blocked`, `todo`, `in_progress`, `dropped`).
+- [x] `docs/agents/domain.md` — single-context, ADRs at `docs/decisions/`
+      (not the skill's default `docs/adr/`), numbering continues at `ADR-0009`.
+- [x] `GLOSSARY.md` seeded with the project vocabulary, each term pointing at the
+      spec that owns the detail.
+- [x] `AGENTS.md` gained `## Agent skills` and a read-order entry for
+      `docs/agents/`.
+- [x] Local wiring: `.workbuddy/skills/` symlinks to `.agents/skills/`
+      (gitignored); `.scratch/` and `.workbuddy/` ignored.
 
 ### Code and tooling
 
@@ -86,6 +103,14 @@ After adding `docs/research/bruno-product-inventory.md`, run `make fmt` again;
 Prettier will reformat it. markdownlint excludes `docs/research/**` because the
 tables contain code spans with literal pipes.
 
+### Verification for M0-13 (2026-10-21)
+
+| Command                                                | Result                                                                                                                                                            |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx prettier --check "**/*.{md,yml,yaml,json,jsonc}"` | pass — "All matched files use Prettier code style"                                                                                                                |
+| `npx markdownlint-cli2 "**/*.md" …`                    | pass — 32 files, 0 issues (`.agents/skills`, `.workbuddy`, `.scratch` excluded)                                                                                   |
+| `make verify`                                          | **fail**, pre-existing: `internal/collection` does not compile (`undefined: Environment`, `undefined: LoadEnvironments`); untracked WIP, unrelated to this change |
+
 ## Next three tasks
 
 1. **M1-01 — `.bru` tokenizer.**
@@ -105,16 +130,18 @@ tables contain code spans with literal pipes.
 
 ## Blockers and open questions
 
-| Item                         | Status      | Owner decision needed                                                         |
-| ---------------------------- | ----------- | ----------------------------------------------------------------------------- |
-| Project license              | Blocked     | Which license? `package.json` currently says `UNLICENSED`; no `LICENSE` file. |
-| Bundle identifier / app name | Blocked     | Replace `com.example.apigo` before 0.2.0 or first public release.             |
-| GitHub repository            | Blocked     | Create `OWNER/apigo`, push `main`, set branch protection; update badges/URLs. |
-| Signing/notarization secrets | Later (M12) | Apple Developer ID, Windows certificate, update key.                          |
-| AI features                  | M10         | Include provider integrations? Which providers? Default is off.               |
-| Git panel scope              | M9          | Bruno 2.0 does not ship one; add in M9 or defer after 1.0.                    |
-| i18n scope                   | M11         | Bruno 2.0 is English-only; Chinese/other locales are an apigo extension.      |
-| External secret providers    | M10+        | `vars:externalsecrets` is parsed but has no editor/resolver in Bruno OSS.     |
+| Item                                             | Status      | Owner decision needed                                                                             |
+| ------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
+| Project license                                  | Blocked     | Which license? `package.json` currently says `UNLICENSED`; no `LICENSE` file.                     |
+| Bundle identifier / app name                     | Blocked     | Replace `com.example.apigo` before 0.2.0 or first public release.                                 |
+| GitHub repository                                | Blocked     | Create `OWNER/apigo`, push `main`, set branch protection; update badges/URLs.                     |
+| Issue tracker activation                         | Blocked     | Same gate as M0-11: no remote, so `gh issue create` fails; skills fall back to `BACKLOG.md` rows. |
+| `internal/{bru,collection}` WIP does not compile | Blocked     | Untracked work from an earlier session; `make verify` stays red until it builds. Not M0-13.       |
+| Signing/notarization secrets                     | Later (M12) | Apple Developer ID, Windows certificate, update key.                                              |
+| AI features                                      | M10         | Include provider integrations? Which providers? Default is off.                                   |
+| Git panel scope                                  | M9          | Bruno 2.0 does not ship one; add in M9 or defer after 1.0.                                        |
+| i18n scope                                       | M11         | Bruno 2.0 is English-only; Chinese/other locales are an apigo extension.                          |
+| External secret providers                        | M10+        | `vars:externalsecrets` is parsed but has no editor/resolver in Bruno OSS.                         |
 
 ## Important implementation notes (from the research)
 

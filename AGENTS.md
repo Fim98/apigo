@@ -22,6 +22,37 @@ Bruno".
 6. The relevant ADR in [docs/decisions/](docs/decisions/).
 7. `.agents/skills/mygo-maintenance/SKILL.md` before touching `internal/ui` or
    any MyGo API.
+8. `docs/agents/` — this repo's issue tracker, triage labels and domain-doc
+   layout, as configured for the engineering skills.
+
+## Agent skills
+
+Engineering skills vendored from
+[`mattpocock/skills`](https://github.com/mattpocock/skills) live in
+`.agents/skills/`. The commit is pinned in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); update them deliberately, not
+as a drive-by.
+
+Flow: idea → `grill-with-docs` → `to-spec` → `to-tickets` → `implement` /
+`implement-spec` → `code-review` → `retro`. `wayfinder` maps an effort too large
+for one session; `ask-matt` routes when unsure. These skills feed the workflow
+below; they do not replace it, and `docs/BACKLOG.md` stays the scope authority.
+
+### Issue tracker
+
+GitHub Issues via the `gh` CLI — chosen, but not live until M0-11 creates the
+remote. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`), each mapped to a backlog status. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` at the root, ADRs in `docs/decisions/`. See
+`docs/agents/domain.md`.
 
 ## Non-negotiables
 

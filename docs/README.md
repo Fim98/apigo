@@ -4,6 +4,7 @@ Start with [AGENTS.md](../AGENTS.md) and [HANDOFF.md](HANDOFF.md).
 
 | Document                                  | What it answers                                                        |
 | ----------------------------------------- | ---------------------------------------------------------------------- |
+| [Glossary](../GLOSSARY.md)                | What do we call this thing, and which document owns the detail?        |
 | [Roadmap](ROADMAP.md)                     | What are we building, in what order, and when is a milestone done?     |
 | [Backlog](BACKLOG.md)                     | What can I claim right now? What are its dependencies?                 |
 | [Capability matrix](CAPABILITY_MATRIX.md) | Does apigo match Bruno for this behavior?                              |
@@ -17,6 +18,7 @@ Start with [AGENTS.md](../AGENTS.md) and [HANDOFF.md](HANDOFF.md).
 | [Decisions](decisions/)                   | Why did we choose this architecture?                                   |
 | [Research](research/)                     | Source-level inventories of Bruno 2.0.0 and MyGo 0.6.2                 |
 | [Handoff](HANDOFF.md)                     | Where are we now, what is next, what is blocked?                       |
+| [Agent config](agents/)                   | Where do issues live, what are the triage labels, where do ADRs sit?   |
 
 ## Reading paths
 
@@ -27,3 +29,5 @@ Start with [AGENTS.md](../AGENTS.md) and [HANDOFF.md](HANDOFF.md).
 - **Implementing the engine:** REQUEST_ENGINE → research/bruno-engine-inventory.md
   → TESTING §3.
 - **Releasing:** RELEASE → CHANGELOG → scripts/check-release.sh → CI workflow.
+- **Planning with an agent skill:** AGENTS § Agent skills → GLOSSARY →
+  agents/issue-tracker.md → the skill in `.agents/skills/`.

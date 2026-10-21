@@ -6,3 +6,8 @@ coverage/
 go.sum
 package-lock.json
 .husky/_
+
+# Vendored third-party skill docs stay byte-identical to upstream
+.agents/skills/
+.workbuddy/
+.scratch/
