@@ -22,25 +22,6 @@ const (
 	YAMLFolderAltFile = "folder.yaml"
 )
 
-// Format identifies how a collection is stored on disk.
-type Format uint8
-
-// Collection formats.
-const (
-	// FormatBRU is `.bru` files with bruno.json.
-	FormatBRU Format = iota
-	// FormatYAML is OpenCollection YAML.
-	FormatYAML
-)
-
-// String returns the format name.
-func (f Format) String() string {
-	if f == FormatYAML {
-		return "yaml"
-	}
-	return "bru"
-}
-
 // DetectFormat reports how a collection directory is stored.
 //
 // OpenCollection wins when both markers exist, matching Bruno 2.x; the caller is
@@ -89,13 +70,16 @@ func ParseYAMLCollection(path string, src []byte) (Config, *Folder, error) {
 		Type:    "collection",
 		Version: root.Get("info").Get("version").String(),
 	}
+	cfg.Ignore = root.Get("extensions").Get("bruno").Get("ignore").Strings()
+
 	defaults := &Folder{
-		Path: path,
-		Meta: Meta{Name: cfg.Name, Type: string(TypeHTTP), Seq: 1},
+		Path:   path,
+		Source: doc,
+		Meta:   Meta{Name: cfg.Name, Type: string(TypeHTTP), Seq: 1},
 	}
 
 	if defaultsNode := root.Get("request"); defaultsNode.Valid() {
-		readFolderRequest(defaults, defaultsNode)
+		readRequestDefaults(defaults, defaultsNode)
 	}
 	if docs := root.Get("docs"); docs.Valid() {
 		defaults.Docs = docs.Get("content").String()
@@ -112,12 +96,12 @@ func ParseYAMLRequest(path, relPath string, src []byte) (*Request, error) {
 	root := doc.Root()
 	info := root.Get("info")
 
-	req := &Request{Path: path, RelPath: relPath}
+	req := &Request{Path: path, RelPath: relPath, Source: doc}
 	req.Meta = yamlMeta(info)
-	req.URL = ""
-	req.Method = ""
 
-	protocol := yamlProtocolNode(root, req.Meta.Type)
+	rawType := req.Meta.Type
+	protocol := yamlProtocolNode(root, rawType)
+	req.Meta.Type = normalizeYAMLType(rawType)
 	if protocol.Valid() {
 		req.Method = strings.ToUpper(protocol.Get("method").String())
 		req.URL = protocol.Get("url").String()
@@ -167,13 +151,15 @@ func ParseYAMLFolder(path, relPath string, src []byte) (*Folder, error) {
 		return nil, yamlPathError(path, err)
 	}
 	root := doc.Root()
-	folder := &Folder{Path: path, RelPath: relPath}
+	folder := &Folder{Path: path, RelPath: relPath, Source: doc}
 	folder.Meta = yamlMeta(root.Get("info"))
 	if folder.Meta.Type == "" || folder.Meta.Type == "folder" {
 		folder.Meta.Type = string(TypeHTTP)
+	} else {
+		folder.Meta.Type = normalizeYAMLType(folder.Meta.Type)
 	}
 	if requestNode := root.Get("request"); requestNode.Valid() {
-		readFolderRequest(folder, requestNode)
+		readRequestDefaults(folder, requestNode)
 	}
 	if docs := root.Get("docs"); docs.Valid() {
 		folder.Docs = docs.Get("content").String()
@@ -223,7 +209,7 @@ func ParseYAMLEnvironment(path, name string, src []byte) (*Environment, error) {
 // yamlPathError adds the file path to a YAML error while keeping its position.
 func yamlPathError(path string, err error) error {
 	var ocErr *opencollection.Error
-	if errors.As(err, &ocErr) {
+	if errors.As(err, &ocErr) && ocErr.Line > 0 {
 		return fmt.Errorf("%s:%d: %w", path, ocErr.Line, err)
 	}
 	return fmt.Errorf("%s: %w", path, err)
@@ -232,9 +218,10 @@ func yamlPathError(path string, err error) error {
 // yamlMeta maps the info block onto Meta.
 func yamlMeta(info *opencollection.Node) Meta {
 	meta := Meta{
-		Name: info.Get("name").String(),
-		Type: info.Get("type").String(),
-		Tags: info.Get("tags").Strings(),
+		Name:        info.Get("name").String(),
+		Type:        info.Get("type").String(),
+		Tags:        info.Get("tags").Strings(),
+		Description: info.Get("description").String(),
 	}
 	if seq, ok := info.Get("seq").Int(); ok {
 		meta.Seq = seq
@@ -265,12 +252,13 @@ func yamlProtocolNode(root *opencollection.Node, itemType string) *opencollectio
 	}
 }
 
-// readFolderRequest reads the request-defaults block shared by folder.yml and
-// opencollection.yml.
-func readFolderRequest(folder *Folder, node *opencollection.Node) {
+// readRequestDefaults reads the `request:` block shared by folder.yml and
+// opencollection.yml: the defaults every item inside inherits.
+func readRequestDefaults(folder *Folder, node *opencollection.Node) {
 	folder.Headers = append(folder.Headers, keyValuesFromYAML(node.Get("headers"))...)
 	folder.Auth = authFromYAML(node.Get("auth"))
 	folder.VarsPre = append(folder.VarsPre, variablesFromYAML(node.Get("variables"))...)
+	folder.VarsPost = append(folder.VarsPost, postResponseVarsFromYAML(node.Get("actions"))...)
 	scripts := &Request{}
 	applyYAMLScripts(scripts, node.Get("scripts"))
 	folder.Scripts = scripts.Scripts
@@ -370,7 +358,9 @@ func authFromYAML(node *opencollection.Node) *Auth {
 		auth.Mode = "none"
 	}
 	node.Each(func(key string, value *opencollection.Node) bool {
-		if key == "type" {
+		// Only scalar fields are mode parameters; nested shapes (OAuth2
+		// additional parameters) stay in the document for the writer.
+		if key == "type" || !value.IsScalar() {
 			return true
 		}
 		auth.Params = append(auth.Params, KeyValue{
@@ -555,4 +545,33 @@ func yamlFragment(node *opencollection.Node) string {
 		return ""
 	}
 	return strings.TrimRight(string(data), "\n")
+}
+
+// normalizeYAMLType maps an OpenCollection item type onto the model's
+// RequestType. `websocket` is the format's spelling of `ws`.
+func normalizeYAMLType(itemType string) string {
+	switch itemType {
+	case "websocket":
+		return string(TypeWS)
+	case "graphql":
+		return string(TypeGraphQL)
+	case "grpc":
+		return string(TypeGRPC)
+	case "http", "":
+		return string(TypeHTTP)
+	default:
+		return itemType
+	}
+}
+
+// IsYAMLRequestType reports whether an OpenCollection item type is something the
+// collection tree shows as a request. `script`, `app` and `folder` items are
+// preserved on disk but are not requests.
+func IsYAMLRequestType(itemType string) bool {
+	switch itemType {
+	case "http", "graphql", "grpc", "websocket", "ws":
+		return true
+	default:
+		return false
+	}
 }

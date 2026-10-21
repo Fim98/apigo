@@ -35,11 +35,13 @@ The reference snapshot is Bruno 2.0.0 at
     asserts, collections, environments)
   - `packages/bruno-toml/tests/` (if TOML support is added)
   - `tests/**/fixtures/**/*.bru` for feature-specific syntax
-- `internal/collection/testdata/bruno/` — complete collection trees, including
-  `bruno.json`, folder files, environments and `.env`.
-- `internal/opencollection/testdata/bruno/` — OpenCollection YAML trees
-  (`opencollection.yml`, `collection.yml`, `folder.yml`, item `.yml`,
-  environments) from Bruno's filestore specs and test collections.
+- `internal/collection/testdata/sample/` — a complete `.bru` collection tree
+  written by this project (no third-party notice needed).
+- `internal/collection/testdata/bruno-yaml/` — complete OpenCollection YAML
+  collection trees (`opencollection.yml`, `folder.yml`, item `.yml`,
+  `environments/*.yml`) copied from Bruno's test collections, with a notice. A
+  test that needs raw YAML documents rather than trees may add fixtures under
+  `internal/opencollection/testdata/`.
 - `internal/script/testdata/bruno/` — scripting fixtures.
 - `internal/httpx/testdata/bruno/` — request/response cases derived from
   `packages/bruno-tests/collection/` and the Express testbench.

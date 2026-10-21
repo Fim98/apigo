@@ -335,3 +335,321 @@ func TestLoadYAMLRejectsBrokenItem(t *testing.T) {
 		t.Fatalf("the healthy request must still load, got %d", len(c.Requests()))
 	}
 }
+
+// writeYAMLTree creates a collection tree from path -> content.
+func writeYAMLTree(t *testing.T, files map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for name, content := range files {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
+}
+
+func TestYAMLAlternativeExtension(t *testing.T) {
+	dir := writeYAMLTree(t, map[string]string{
+		"opencollection.yaml":     "opencollection: '1.0.0'\ninfo:\n  name: alt\n",
+		"users/folder.yaml":       "info:\n  name: Users\n  type: folder\n",
+		"users/one.yaml":          "info:\n  name: One\n  type: http\nhttp:\n  url: https://a\n",
+		"environments/Local.yaml": "name: Local\nvariables:\n  - name: a\n    value: b\n",
+	})
+
+	c, err := Load(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.Format != FormatYAML {
+		t.Fatalf("format = %v", c.Format)
+	}
+	if len(c.Requests()) != 1 {
+		t.Fatalf("requests = %d", len(c.Requests()))
+	}
+	if len(c.Environments) != 1 || c.Environments[0].Name != "Local" {
+		t.Fatalf("environments = %+v", c.Environments)
+	}
+	var folder *Node
+	_ = c.Walk(func(n *Node) error {
+		if n.IsFolder() {
+			folder = n
+		}
+		return nil
+	})
+	if folder == nil || folder.Name != "Users" {
+		t.Fatalf("folder = %+v", folder)
+	}
+}
+
+func TestLoadYAMLSkipsNonRequestItems(t *testing.T) {
+	dir := writeYAMLTree(t, map[string]string{
+		"opencollection.yml": "opencollection: '1.0.0'\ninfo:\n  name: items\n",
+		"real.yml":           "info:\n  name: real\n  type: http\nhttp:\n  url: https://a\n",
+		"tool.yml":           "info:\n  name: tool\n  type: script\nscript:\n  code: |-\n    console.log(1)\n",
+	})
+
+	c, err := Load(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(c.Requests()) != 1 {
+		t.Fatalf("requests = %d, want only the http item", len(c.Requests()))
+	}
+	if len(c.Warnings) != 1 || !strings.Contains(c.Warnings[0].Error(), "not shown as requests") {
+		t.Fatalf("warnings = %v", c.Warnings)
+	}
+}
+
+func TestYAMLUnknownKeysStayInTheDocument(t *testing.T) {
+	src := []byte(`info:
+  name: future
+  type: http
+  x-new-info: keep
+http:
+  method: GET
+  url: https://example.com
+x-future-block:
+  a: 1
+`)
+	req, err := ParseYAMLRequest("future.yml", "future.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if req.Source == nil {
+		t.Fatal("request must keep its source document")
+	}
+	out, err := req.Source.Bytes()
+	if err != nil {
+		t.Fatalf("bytes: %v", err)
+	}
+	for _, want := range []string{"x-new-info: keep", "x-future-block:", "a: 1"} {
+		if !strings.Contains(string(out), want) {
+			t.Fatalf("document lost %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestYAMLBodyVariants(t *testing.T) {
+	src := []byte(`info:
+  name: bodies
+  type: http
+http:
+  method: POST
+  url: https://example.com
+  body:
+    type: form-urlencoded
+    data:
+      - name: a
+        value: '1'
+      - name: b
+        value: '2'
+        disabled: true
+`)
+	req, err := ParseYAMLRequest("bodies.yml", "bodies.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if req.Body.Mode != BodyFormURLEncoded {
+		t.Fatalf("mode = %q", req.Body.Mode)
+	}
+	if len(req.Body.Form) != 2 || req.Body.Form[0].Name != "a" {
+		t.Fatalf("form = %+v", req.Body.Form)
+	}
+	if req.Body.Form[1].Enabled {
+		t.Fatalf("disabled form field = %+v", req.Body.Form[1])
+	}
+
+	multipart := []byte(`info:
+  name: upload
+  type: http
+http:
+  url: https://example.com
+  body:
+    type: multipart-form
+    data:
+      - name: note
+        value: hello
+      - name: file
+        files: [/tmp/a.txt]
+        contentType: text/plain
+`)
+	req, err = ParseYAMLRequest("upload.yml", "upload.yml", multipart)
+	if err != nil {
+		t.Fatalf("parse multipart: %v", err)
+	}
+	if req.Body.Mode != BodyMultipart || len(req.Body.Form) != 2 {
+		t.Fatalf("multipart = %+v", req.Body)
+	}
+	if req.Body.Form[1].Type != "file" || len(req.Body.Form[1].Files) != 1 {
+		t.Fatalf("file field = %+v", req.Body.Form[1])
+	}
+	if req.Body.Form[1].ContentType != "text/plain" {
+		t.Fatalf("content type = %q", req.Body.Form[1].ContentType)
+	}
+
+	fileBody := []byte(`info:
+  name: binary
+  type: http
+http:
+  url: https://example.com
+  body:
+    type: file
+    data:
+      - path: /tmp/payload.bin
+        contentType: application/octet-stream
+`)
+	req, err = ParseYAMLRequest("binary.yml", "binary.yml", fileBody)
+	if err != nil {
+		t.Fatalf("parse file body: %v", err)
+	}
+	if req.Body.Mode != BodyFile || len(req.Body.Files) != 1 || req.Body.Files[0].Path != "/tmp/payload.bin" {
+		t.Fatalf("file body = %+v", req.Body)
+	}
+}
+
+func TestYAMLScriptsAndActions(t *testing.T) {
+	src := []byte(`info:
+  name: scripts
+  type: http
+http:
+  url: https://example.com
+runtime:
+  scripts:
+    - type: before-request
+      code: 'pre()'
+    - type: after-response
+      code: 'post()'
+    - type: tests
+      code: 'test()'
+    - type: grpc:before-call-start
+      code: 'grpc()'
+  actions:
+    - type: set-variable
+      selector: { expression: res.body.id, method: jsonq }
+      variable: { name: userId, scope: request }
+`)
+	req, err := ParseYAMLRequest("scripts.yml", "scripts.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if req.Scripts.PreRequest != "pre()" || req.Scripts.PostResponse != "post()" {
+		t.Fatalf("scripts = %+v", req.Scripts)
+	}
+	if req.Tests != "test()" {
+		t.Fatalf("tests = %q", req.Tests)
+	}
+	if req.Scripts.GRPC["before-call-start"] != "grpc()" {
+		t.Fatalf("grpc scripts = %+v", req.Scripts.GRPC)
+	}
+	if len(req.VarsPost) != 1 || req.VarsPost[0].Name != "userId" {
+		t.Fatalf("post vars = %+v", req.VarsPost)
+	}
+	if !req.VarsPost[0].Local {
+		t.Fatalf("scope: request must map to a local variable: %+v", req.VarsPost[0])
+	}
+	if req.VarsPost[0].Value != "res.body.id" {
+		t.Fatalf("value = %q", req.VarsPost[0].Value)
+	}
+}
+
+func TestYAMLWebsocketTypeIsNormalised(t *testing.T) {
+	src := []byte("info:\n  name: socket\n  type: websocket\nwebsocket:\n  url: wss://example.com\n")
+	req, err := ParseYAMLRequest("socket.yml", "socket.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if req.Meta.Type != string(TypeWS) {
+		t.Fatalf("type = %q, want %q", req.Meta.Type, TypeWS)
+	}
+	if req.URL != "wss://example.com" {
+		t.Fatalf("url = %q", req.URL)
+	}
+}
+
+func TestYAMLCollectionIgnoreAndActions(t *testing.T) {
+	dir := writeYAMLTree(t, map[string]string{
+		"opencollection.yml": `opencollection: '1.0.0'
+info:
+  name: ignored
+request:
+  actions:
+    - type: set-variable
+      selector: { expression: res.body.token, method: jsonq }
+      variable: { name: token, scope: runtime }
+extensions:
+  bruno:
+    ignore:
+      - vendor
+`,
+		"a.yml":        "info:\n  name: a\n  type: http\nhttp:\n  url: https://a\n",
+		"vendor/b.yml": "info:\n  name: b\n  type: http\nhttp:\n  url: https://b\n",
+	})
+
+	c, err := Load(context.Background(), dir)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(c.Requests()) != 1 {
+		t.Fatalf("requests = %d, want vendor ignored", len(c.Requests()))
+	}
+	if c.Defaults == nil || len(c.Defaults.VarsPost) != 1 {
+		t.Fatalf("collection actions = %+v", c.Defaults)
+	}
+	node := findNode(t, c, "a.yml")
+	vars := ResolvedVarsPost(node)
+	if len(vars) != 1 || vars[0].Name != "token" {
+		t.Fatalf("resolved post vars = %+v", vars)
+	}
+}
+
+func TestYAMLDescriptionAndEnvironmentExtras(t *testing.T) {
+	src := []byte(`info:
+  name: described
+  type: http
+  description: 'A described request'
+http:
+  url: https://a
+`)
+	req, err := ParseYAMLRequest("d.yml", "d.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if req.Meta.Description != "A described request" {
+		t.Fatalf("description = %q", req.Meta.Description)
+	}
+
+	envSrc := []byte(`name: Staging
+extends: [Base, Shared]
+color: '#ff0000'
+variables:
+  - name: retries
+    value: { type: number, data: '3' }
+externalSecrets:
+  type: vault
+  variables:
+    - name: apiKey
+`)
+	env, err := ParseYAMLEnvironment("Staging.yml", "Staging", envSrc)
+	if err != nil {
+		t.Fatalf("parse env: %v", err)
+	}
+	if len(env.Extends) != 2 || env.Extends[1] != "Shared" {
+		t.Fatalf("extends = %v", env.Extends)
+	}
+	if env.Color != "#ff0000" {
+		t.Fatalf("color = %q", env.Color)
+	}
+	if env.Vars[0].Kind != VarNumber || env.Vars[0].Value != "3" {
+		t.Fatalf("typed value = %+v", env.Vars[0])
+	}
+	if len(env.External) != 1 || env.External[0].Provider != "vault" {
+		t.Fatalf("external = %+v", env.External)
+	}
+	if len(env.External[0].Pairs) != 1 || env.External[0].Pairs[0].Name != "apiKey" {
+		t.Fatalf("external pairs = %+v", env.External[0].Pairs)
+	}
+}

@@ -238,7 +238,10 @@ examples: [...]
 ```
 
 - `info.type` is `http`, `graphql`, `grpc`, `websocket`, `folder`, `script`,
-  `app`. apigo maps the first four onto `RequestType`; the rest are preserved.
+  `app`. apigo maps the first four onto `RequestType` (`websocket` becomes `ws`)
+  and describes `info.description` as `Meta.Description`. `script`/`app` items
+  stay on disk but are not shown as requests; the loader skips them with a
+  warning instead of inventing an empty GET.
 - The protocol block is named after the type (`graphql:`, `grpc:`,
   `websocket:`), and carries the same field names as `http:`.
 
@@ -267,9 +270,11 @@ auth:
   token: '{{token}}'
 ```
 
-- `type` is the mode; every other scalar field is a mode parameter, in source
+- `type` is the mode; every other **scalar** field is a mode parameter, in source
   order. `type: none` and `type: inherit` are written as bare scalars
-  (`auth: inherit`), so the reader accepts both shapes.
+  (`auth: inherit`), so the reader accepts both shapes. Nested objects inside
+  `auth` (OAuth2 additional parameters) are not flattened into params; they stay
+  in the source document for the writer.
 - apigo maps this onto `Auth{Mode, Params}` without interpreting the fields, so a
   new Bruno auth mode survives a read.
 
@@ -297,7 +302,11 @@ runtime:
   `grpc:*` hooks. The reader also accepts `pre-request`/`post-response`, the
   `.bru` spelling, in case a file uses it.
 - Post-response variables are `set-variable` actions; `selector.expression` is
-  the value and `variable.scope: request` marks a local variable.
+  the value and `variable.scope: request` marks a local variable. They map to
+  `Request.VarsPost`, and to `Folder.VarsPost` for the `request:` block of a
+  folder or the collection root (`ResolvedVarsPost` merges the chain).
+  `selector.method`, `phase` and non-`set-variable` actions are not modelled; they
+  remain in the document for the writer.
 
 ### 8.5 Environments
 
@@ -325,6 +334,19 @@ externalSecrets:
 
 `internal/opencollection` keeps the whole `yaml.Node` tree, including comments,
 key order and unknown keys. `internal/collection` maps the fields it models onto
-`Request`/`Folder`/`Environment` and leaves the rest in the document. The M1-14
-writer re-reads the file, patches the modelled nodes and writes the tree back, so
-unmodelled fields survive a save without being copied into the model.
+`Request`/`Folder`/`Environment` and **keeps the document on the model**
+(`Request.Source`, `Folder.Source`), which is what makes the preserved data
+reachable: `Source.Bytes()` still contains a key the model never read. The M1-14
+writer patches those nodes and writes the tree back, so unmodelled fields survive
+a save without being copied into the model.
+
+Limits, all documented rather than silent:
+
+- Merge keys (`<<: *defaults`) are not expanded when decoding to a `Node`, so a
+  file relying on them reads as if the keys were absent. Bruno does not emit
+  them.
+- Only the first document of a multi-document YAML file is read.
+- Duplicate mapping keys: the first wins.
+- `docs.type` is not modelled; the writer always emits `text/markdown`.
+- Examples are stored as YAML fragments (`Example.Content`) so they survive a
+  read; the writer re-emits them as a list.

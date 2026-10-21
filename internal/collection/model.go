@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"apigo/internal/bru"
+	"apigo/internal/opencollection"
 )
 
 // MaxFileSize is the size above which a .bru file is not parsed automatically.
@@ -39,6 +40,9 @@ type Meta struct {
 	Type string
 	Seq  int
 	Tags []string
+	// Description is the item-level description. `.bru` keeps it in a docs
+	// block; OpenCollection has an `info.description` field beside it.
+	Description string
 	// Extra holds meta keys this version does not model, in source order.
 	Extra []bru.Pair
 }
@@ -227,6 +231,10 @@ type Request struct {
 
 	// Unknown holds blocks the model does not understand, in source order.
 	Unknown []bru.Block
+
+	// Source is the parsed document a YAML request was read from, kept so a
+	// writer can preserve fields the model does not cover. It is nil for `.bru`.
+	Source *opencollection.Document
 }
 
 // Name returns the request's display name.
@@ -251,10 +259,14 @@ type Folder struct {
 	Headers  []KeyValue
 	Auth     *Auth
 	VarsPre  []Variable
+	VarsPost []Variable
 	Scripts  Scripts
 	Tests    string
 	Docs     string
 	Settings Settings
+
+	// Source is the parsed document a YAML folder was read from; nil for `.bru`.
+	Source *opencollection.Document
 }
 
 // Node is one entry in the collection tree: either a folder or a request.
@@ -420,6 +432,20 @@ func ResolvedVarsPre(n *Node) []Variable {
 	}
 	if n.Request != nil {
 		out = append(out, n.Request.VarsPre...)
+	}
+	return out
+}
+
+// ResolvedVarsPost merges post-response variables along the chain.
+func ResolvedVarsPost(n *Node) []Variable {
+	var out []Variable
+	for _, link := range n.Chain() {
+		if link.Folder != nil {
+			out = append(out, link.Folder.VarsPost...)
+		}
+	}
+	if n.Request != nil {
+		out = append(out, n.Request.VarsPost...)
 	}
 	return out
 }

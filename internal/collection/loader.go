@@ -20,6 +20,25 @@ const (
 	EnvDir         = "environments"
 )
 
+// Format identifies how a collection is stored on disk.
+type Format uint8
+
+// Collection formats.
+const (
+	// FormatBRU is `.bru` files with bruno.json.
+	FormatBRU Format = iota
+	// FormatYAML is OpenCollection YAML.
+	FormatYAML
+)
+
+// String returns the format name.
+func (f Format) String() string {
+	if f == FormatYAML {
+		return "yaml"
+	}
+	return "bru"
+}
+
 // skippedDirs are never walked. Hidden directories are skipped as well.
 var skippedDirs = map[string]bool{
 	".git":         true,
@@ -50,7 +69,7 @@ func Load(ctx context.Context, root string) (*Collection, error) {
 	}
 
 	c := &Collection{Root: abs, Format: DetectFormat(abs)}
-	if err := c.loadConfig(abs); err != nil {
+	if err := c.loadConfig(ctx, abs); err != nil {
 		return nil, err
 	}
 
@@ -90,7 +109,10 @@ func Load(ctx context.Context, root string) (*Collection, error) {
 
 // loadConfig reads the collection-level files for the collection's format:
 // opencollection.yml, or bruno.json plus collection.bru.
-func (c *Collection) loadConfig(abs string) error {
+func (c *Collection) loadConfig(ctx context.Context, abs string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if c.Format == FormatYAML {
 		cfgPath, ok := openCollectionPath(abs)
 		if !ok {
@@ -175,7 +197,7 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 			folder := &Folder{Meta: Meta{Name: name, Type: string(TypeHTTP), Seq: 1}}
 			folder.Path = filepath.Join(root, filepath.FromSlash(childRel))
 			folder.RelPath = childRel
-			if parsed, perr := loadFolderMeta(folder, c.Format); perr != nil {
+			if parsed, perr := loadFolderMeta(ctx, folder, c.Format); perr != nil {
 				c.Warnings = append(c.Warnings, perr)
 			} else if parsed != nil {
 				parsed.Meta.Name = orDefault(parsed.Meta.Name, name)
@@ -195,9 +217,15 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 		if !isRequestFile(name, c.Format) {
 			continue
 		}
-		req, err := loadRequest(filepath.Join(root, filepath.FromSlash(childRel)), childRel, c.Format)
+		req, err := loadRequest(ctx, filepath.Join(root, filepath.FromSlash(childRel)), childRel, c.Format)
 		if err != nil {
 			c.Warnings = append(c.Warnings, err)
+			continue
+		}
+		if c.Format == FormatYAML && !IsYAMLRequestType(req.Meta.Type) {
+			// `script`, `app` and other item types are preserved on disk but are
+			// not part of the request tree.
+			c.Warnings = append(c.Warnings, fmt.Errorf("%s: %q items are not shown as requests yet", req.RelPath, req.Meta.Type))
 			continue
 		}
 		nodes = append(nodes, &Node{
@@ -214,7 +242,10 @@ func loadDir(ctx context.Context, root, rel string, parent *Node, ignore map[str
 }
 
 // loadRequest reads one request file, enforcing the size cap.
-func loadRequest(path, rel string, format Format) (*Request, error) {
+func loadRequest(ctx context.Context, path, rel string, format Format) (*Request, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -233,7 +264,10 @@ func loadRequest(path, rel string, format Format) (*Request, error) {
 }
 
 // loadFolderMeta reads folder.bru, folder.yml or nothing.
-func loadFolderMeta(base *Folder, format Format) (*Folder, error) {
+func loadFolderMeta(ctx context.Context, base *Folder, format Format) (*Folder, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if format == FormatYAML {
 		path, ok := yamlFolderPath(base.Path)
 		if !ok {
@@ -309,10 +343,10 @@ func nodeSeq(n *Node) int {
 }
 
 // LoadRequestFile loads a single request file outside a collection.
-func LoadRequestFile(path string) (*Request, error) {
+func LoadRequestFile(ctx context.Context, path string) (*Request, error) {
 	format := FormatBRU
 	if strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml") {
 		format = FormatYAML
 	}
-	return loadRequest(path, filepath.Base(path), format)
+	return loadRequest(ctx, path, filepath.Base(path), format)
 }

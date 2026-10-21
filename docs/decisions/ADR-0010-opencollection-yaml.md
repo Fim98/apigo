@@ -49,7 +49,9 @@ Positive:
 
 - Unknown keys, comments and ordering survive a read, which is the whole point
   of `yaml.Node`.
-- Errors carry `Line`/`Column` from the YAML decoder.
+- Errors carry the line number yaml.v3 reports, so a broken item points at the
+  offending line. yaml.v3 does not report a column for every error kind, so
+  `Error.Column` stays zero when the decoder is silent.
 - One small dependency, cgo-free, cross-builds for macOS, Linux and Windows.
 - The writer in M1-14 can patch nodes instead of re-serializing the whole
   document, so fields apigo does not model stay byte-identical.
@@ -58,9 +60,11 @@ Negative:
 
 - `yaml.Node` is verbose: every read is a tree walk, and the mapping code has to
   handle missing nodes.
-- Anchors and merge keys are expanded by the decoder, so a re-written document
-  may lose them. Documented in OPENCOLLECTION.md; Bruno's own writer does the
-  same.
+- Anchors are kept as `AliasNode` and followed by the accessors, but **merge keys
+  (`<<: *defaults`) are not expanded** by yaml.v3 when decoding to a `Node`, so a
+  file relying on them reads as if the merged keys were absent. Bruno never emits
+  them; documented in OPENCOLLECTION.md §8.6. Multi-document YAML is also out of
+  scope: only the first document is read.
 
 Mitigations:
 

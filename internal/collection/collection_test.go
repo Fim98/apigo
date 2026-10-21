@@ -131,7 +131,7 @@ func TestResolvedVarsPre(t *testing.T) {
 }
 
 func TestParseRequestModel(t *testing.T) {
-	req, err := LoadRequestFile(filepath.Join("testdata", "sample", "users", "get.bru"))
+	req, err := LoadRequestFile(context.Background(), filepath.Join("testdata", "sample", "users", "get.bru"))
 	if err != nil {
 		t.Fatalf("load request: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestParseRequestModel(t *testing.T) {
 
 func TestRequestModelRoundTrip(t *testing.T) {
 	path := filepath.Join("testdata", "sample", "users", "get.bru")
-	req, err := LoadRequestFile(path)
+	req, err := LoadRequestFile(context.Background(), path)
 	if err != nil {
 		t.Fatalf("load request: %v", err)
 	}
