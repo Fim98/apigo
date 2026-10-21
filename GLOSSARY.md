@@ -27,6 +27,12 @@ _Avoid_: group, directory
 A named set of variables under `environments/` that a request resolves against.
 _Avoid_: profile, env (as a noun for the whole set)
 
+**Dotenv file**:
+The single `.env` at a collection root (or workspace root). It feeds the
+`process.env` namespace only and is never a variable scope; `.env.*` files are
+inert.
+_Avoid_: env file (ambiguous with an Environment)
+
 ### Format grammar
 
 **Block**:

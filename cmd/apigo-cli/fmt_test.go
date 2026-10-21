@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -333,5 +334,74 @@ func TestFmtLeavesUnrelatedYAMLAlone(t *testing.T) {
 	}
 	if !strings.Contains(errOut.String(), "not an OpenCollection file") {
 		t.Fatalf("stderr %q", errOut.String())
+	}
+}
+
+// TestInspectShowsDotEnv checks that `.env` is reported by name, and that a
+// collection without one says nothing about it.
+func TestInspectShowsDotEnv(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"opencollection.yml": "opencollection: '1.0.0'\ninfo:\n  name: dotenv\n",
+		".env":               "API_TOKEN=supersecret\nREGION=eu\n",
+		".env.local":         "IGNORED=yes\n",
+		"one.yml":            "info:\n  name: one\n  type: http\nhttp:\n  url: https://a\n",
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var out, errOut bytes.Buffer
+	if code := runInspect([]string{dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), ".env: 2 variable(s)") {
+		t.Fatalf("output missing the dotenv line:\n%s", out.String())
+	}
+	if strings.Contains(out.String(), "supersecret") {
+		t.Fatalf("values must not be printed:\n%s", out.String())
+	}
+
+	out.Reset()
+	errOut.Reset()
+	if code := runInspect([]string{"--json", dir}, &out, &errOut); code != 0 {
+		t.Fatalf("json exit %d, stderr %q", code, errOut.String())
+	}
+	var summary struct {
+		DotEnv *struct {
+			Path string   `json:"path"`
+			Vars []string `json:"vars"`
+		} `json:"dotenv"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &summary); err != nil {
+		t.Fatalf("decode json: %v\n%s", err, out.String())
+	}
+	if summary.DotEnv == nil {
+		t.Fatalf("json has no dotenv block:\n%s", out.String())
+	}
+	if got := strings.Join(summary.DotEnv.Vars, ","); got != "API_TOKEN,REGION" {
+		t.Fatalf("dotenv vars = %q, want names in file order", got)
+	}
+	if filepath.Base(summary.DotEnv.Path) != ".env" {
+		t.Fatalf("dotenv path = %q", summary.DotEnv.Path)
+	}
+	if strings.Contains(out.String(), "supersecret") || strings.Contains(out.String(), "IGNORED") {
+		t.Fatalf("json leaked a value or an inert file:\n%s", out.String())
+	}
+
+	// A collection without .env must not grow an empty block.
+	plain := t.TempDir()
+	if err := os.WriteFile(filepath.Join(plain, "opencollection.yml"), []byte("opencollection: '1.0.0'\ninfo:\n  name: plain\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	errOut.Reset()
+	if code := runInspect([]string{plain}, &out, &errOut); code != 0 {
+		t.Fatalf("plain exit %d", code)
+	}
+	if strings.Contains(out.String(), ".env") {
+		t.Fatalf("a collection without .env mentioned one:\n%s", out.String())
 	}
 }

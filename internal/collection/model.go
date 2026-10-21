@@ -330,6 +330,10 @@ type Collection struct {
 	Defaults *Folder
 	// Environments are the files in environments/, in name order.
 	Environments []*Environment
+	// DotEnv is the collection's `.env` file, or nil when it has none. These
+	// variables are only reachable through `process.env`, never through the
+	// request/folder/environment scopes.
+	DotEnv *DotEnv
 	// Tree is the root's entries in display order.
 	Tree []*Node
 	// Source is the parsed root document for a YAML collection; nil for `.bru`.

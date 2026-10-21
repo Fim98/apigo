@@ -1,0 +1,321 @@
+[
+  {
+    "input": "A=1",
+    "dotenv": {
+      "A": "1"
+    }
+  },
+  {
+    "input": "A=1\nB=2\n",
+    "dotenv": {
+      "A": "1",
+      "B": "2"
+    }
+  },
+  {
+    "input": "A=\"x\" # c\n",
+    "dotenv": {
+      "A": "x"
+    }
+  },
+  {
+    "input": "A=\"x\" tail\n",
+    "dotenv": {
+      "A": "\"x\" tail"
+    }
+  },
+  {
+    "input": "A=\"x\"tail\n",
+    "dotenv": {
+      "A": "\"x\"tail"
+    }
+  },
+  {
+    "input": "A='C:\\'\nB=1\n",
+    "dotenv": {
+      "A": "C:\\",
+      "B": "1"
+    }
+  },
+  {
+    "input": "A=\"C:\\tmp\\\"\nB=1\n",
+    "dotenv": {
+      "A": "C:\\tmp\\",
+      "B": "1"
+    }
+  },
+  {
+    "input": "A='a\\'b'\n",
+    "dotenv": {
+      "A": "a\\'b"
+    }
+  },
+  {
+    "input": "A='a\\\\'\n",
+    "dotenv": {
+      "A": "a\\\\"
+    }
+  },
+  {
+    "input": "A=\"a\\nb\"\n",
+    "dotenv": {
+      "A": "a\nb"
+    }
+  },
+  {
+    "input": "A='a\\nb'\n",
+    "dotenv": {
+      "A": "a\\nb"
+    }
+  },
+  {
+    "input": "A=`a\\nb`\n",
+    "dotenv": {
+      "A": "a\\nb"
+    }
+  },
+  {
+    "input": "A=\"line1\nline2\"\nB=3\n",
+    "dotenv": {
+      "A": "line1\nline2",
+      "B": "3"
+    }
+  },
+  {
+    "input": "A='line1\nline2'\n",
+    "dotenv": {
+      "A": "line1\nline2"
+    }
+  },
+  {
+    "input": "A=  v  \n",
+    "dotenv": {
+      "A": "v"
+    }
+  },
+  {
+    "input": "A=\"  v  \"\n",
+    "dotenv": {
+      "A": "  v  "
+    }
+  },
+  {
+    "input": "A=\n",
+    "dotenv": {
+      "A": ""
+    }
+  },
+  {
+    "input": "A\n",
+    "dotenv": {}
+  },
+  {
+    "input": "A = v\n",
+    "dotenv": {
+      "A": "v"
+    }
+  },
+  {
+    "input": "A: v\n",
+    "dotenv": {
+      "A": "v"
+    }
+  },
+  {
+    "input": "A:v\n",
+    "dotenv": {}
+  },
+  {
+    "input": "A : v\n",
+    "dotenv": {}
+  },
+  {
+    "input": "export A=1\n",
+    "dotenv": {
+      "A": "1"
+    }
+  },
+  {
+    "input": "exportA=1\n",
+    "dotenv": {
+      "exportA": "1"
+    }
+  },
+  {
+    "input": "export A\n",
+    "dotenv": {}
+  },
+  {
+    "input": "A=1 # c\n",
+    "dotenv": {
+      "A": "1"
+    }
+  },
+  {
+    "input": "A=1#c\n",
+    "dotenv": {
+      "A": "1"
+    }
+  },
+  {
+    "input": "A=\"a#b\"\n",
+    "dotenv": {
+      "A": "a#b"
+    }
+  },
+  {
+    "input": "A==\n",
+    "dotenv": {
+      "A": "="
+    }
+  },
+  {
+    "input": "A=a=b\n",
+    "dotenv": {
+      "A": "a=b"
+    }
+  },
+  {
+    "input": "a.b=c\n",
+    "dotenv": {
+      "a.b": "c"
+    }
+  },
+  {
+    "input": "a-b=c\n",
+    "dotenv": {
+      "a-b": "c"
+    }
+  },
+  {
+    "input": "A B=c\n",
+    "dotenv": {}
+  },
+  {
+    "input": "A=1\r\nB=2\rC=3\n",
+    "dotenv": {
+      "A": "1",
+      "B": "2",
+      "C": "3"
+    }
+  },
+  {
+    "input": "﻿A=1\n",
+    "dotenv": {
+      "A": "1"
+    }
+  },
+  {
+    "input": "A=1\nA=2\n",
+    "dotenv": {
+      "A": "2"
+    }
+  },
+  {
+    "input": "# only comments\n\n",
+    "dotenv": {}
+  },
+  {
+    "input": "",
+    "dotenv": {}
+  },
+  {
+    "input": "   \n\t\n",
+    "dotenv": {}
+  },
+  {
+    "input": "A=\"unclosed\nB=1\n",
+    "dotenv": {
+      "A": "\"unclosed",
+      "B": "1"
+    }
+  },
+  {
+    "input": "A='unclosed",
+    "dotenv": {
+      "A": "'unclosed"
+    }
+  },
+  {
+    "input": "A=\"x\" # c\nB=2\n",
+    "dotenv": {
+      "A": "x",
+      "B": "2"
+    }
+  },
+  {
+    "input": "A=@\n",
+    "dotenv": {
+      "A": "@"
+    }
+  },
+  {
+    "input": "A=(\n",
+    "dotenv": {
+      "A": "("
+    }
+  },
+  {
+    "input": "A=[1,2]\n",
+    "dotenv": {
+      "A": "[1,2]"
+    }
+  },
+  {
+    "input": "A=a b\tc\n",
+    "dotenv": {
+      "A": "a b\tc"
+    }
+  },
+  {
+    "input": "A=\t\n",
+    "dotenv": {
+      "A": ""
+    }
+  },
+  {
+    "input": "A: \"v\"\n",
+    "dotenv": {
+      "A": "v"
+    }
+  },
+  {
+    "input": "A: 'v' # c\n",
+    "dotenv": {
+      "A": "v"
+    }
+  },
+  {
+    "input": "A=\"v\" \nB=1",
+    "dotenv": {
+      "A": "v",
+      "B": "1"
+    }
+  },
+  {
+    "input": "A=1\n\n\nB=2\n",
+    "dotenv": {
+      "A": "1",
+      "B": "2"
+    }
+  },
+  {
+    "input": "A=\"\"\n",
+    "dotenv": {
+      "A": ""
+    }
+  },
+  {
+    "input": "A=''\n",
+    "dotenv": {
+      "A": ""
+    }
+  },
+  {
+    "input": "A=1\nB\nC=2\n",
+    "dotenv": {
+      "A": "1",
+      "C": "2"
+    }
+  }
+]

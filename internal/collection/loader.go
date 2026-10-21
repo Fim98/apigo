@@ -104,6 +104,17 @@ func Load(ctx context.Context, root string) (*Collection, error) {
 	}
 	c.Environments = envs
 
+	// `.env` is a separate namespace, not a variable scope: a malformed line is
+	// a warning, and a missing file is normal.
+	dotenv, err := LoadDotEnv(ctx, abs)
+	switch {
+	case err != nil:
+		c.Warnings = append(c.Warnings, err)
+	case dotenv != nil:
+		c.DotEnv = dotenv
+		c.Warnings = append(c.Warnings, dotenv.Warnings...)
+	}
+
 	return c, nil
 }
 

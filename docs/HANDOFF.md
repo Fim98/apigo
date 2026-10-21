@@ -6,16 +6,18 @@ it at the end of every session, then verify with `make verify`.
 ## Snapshot
 
 - Date: 2026-10-21 (Asia/Shanghai)
-- Branch: `main`, tracking `origin` (`git@github.com:Fim98/apigo.git`), 3 commits
-  ahead of `origin/main` (`31376a1`)
+- Branch: `main`, tracking `origin` (`git@github.com:Fim98/apigo.git`), level with
+  `origin/main` after the M1-08a push
 - Commits: foundation `f199eb4`, research/doc corrections, `d99ef9c` (M0-13 agent
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
-  (collection), `8f62487` (cli)
+  (collection), `8f62487` (cli), `bd800ad`/`0c196ce` (watcher), `9573d8d`/`fcf2edc`
+  (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), dotenv (this session)
 - Version: `0.1.0` (foundation)
-- Milestone: **M1 — Language & collection store** — parser, model, loader, watcher,
-  CLI, OpenCollection reader and writer done; only dotenv (M1-08a) remains
-- Next milestone: finish M1, then **M2 — Core request engine**
-- Working tree: M1 docs for this session
+- Milestone: **M1 — Language & collection store — complete** (parser, model,
+  loader, watcher, CLI, OpenCollection read/write, dotenv)
+- Next milestone: **M2 — Core request engine** (scopes, interpolation, URL/body
+  builders, HTTP transport)
+- Working tree: clean
 
 ## What is done
 
@@ -91,6 +93,13 @@ it at the end of every session, then verify with `make verify`.
       survives at block level, inside list items, inside `auth` (OAuth2
       `additional_params`) and in unknown action types. `apigo-cli fmt` now
       formats `.yml` collections and refuses YAML outside one.
+- [x] Dotenv (M1-08a): `<collection>/.env` parsed with npm dotenv v16 grammar
+      into `Collection.DotEnv`; `.env.*` files are inert; a malformed line is a
+      warning, never a failed load. `BuildProcessEnv`/`Collection.ProcessEnv`
+      merge OS environment, workspace `.env` and collection `.env` in that order
+      (highest last). `apigo-cli inspect` reports the count and the names, never
+      the values. Parity is pinned by a 54-case corpus captured from
+      `dotenv.parse` 16.4.7 (`internal/collection/testdata/dotenv/reference.json`).
 - [x] Watcher (M1-09): recursive `fsnotify` watcher with a per-path debounce,
       create/update/remove events, `IsDir` preserved for removed directories,
       `TooLarge` for files above the 2.5 MiB cap, new subdirectories watched as
@@ -158,16 +167,18 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M1-08a — dotenv.**
-   Read `<collection>/.env` into a `process.env` map (plain `.env` only; `.env.*`
-   is inert), keep it out of the normal variable scopes, and test precedence. This
-   is the last M1 task.
-2. **M2-01 — variable scopes.**
-   process, collection, folder, environment, request and runtime scopes with the
-   documented precedence; table tests against REQUEST_ENGINE.md §2.
-3. **M2-02 — interpolation.**
-   `{{var}}`, nested references (bounded), unresolved markers, escaping and
-   `process.env`, on top of the scopes from M2-01.
+1. **M2-01 — variable scopes.**
+   Build `internal/vars`: process, collection, folder, environment, request and
+   runtime scopes with the precedence in REQUEST_ENGINE.md §2, table tests
+   against the documented order, and the `Collection.ProcessEnv` seam for
+   `process.env`.
+2. **M2-02 — interpolation.**
+   `{{var}}`, nested references (bounded, cycle guard, max depth 10), unresolved
+   markers kept literally, escaping and `{{process.env.NAME}}`, on top of M2-01.
+3. **M2-04 — URL builder.**
+   Path params, query params, duplicates, disabled entries and `encodeUrl`;
+   wire-level tests comparing raw request URIs (M2-03 dynamic variables can
+   follow).
 
 ## Blockers and open questions
 
@@ -242,6 +253,11 @@ test covers the nine vendored files.
   OpenCollection, Git repos and spec URLs.
 - **Strict schemas in Bruno** (`noUnknown(true)`) reject unknown fields. apigo
   preserves unknown blocks/keys instead; this is a deliberate divergence.
+- **Dotenv is not a scope.** `.env` feeds `process.env` only; a bare `{{name}}`
+  never resolves from it, and `.env.*` files are inert. The parser matches npm
+  dotenv v16 case by case, with two additive extensions (warnings with line
+  numbers) and one restriction: an entry must stay on one line, because dotenv
+  only accepts `KEY` and `=value` on different lines as a regex artifact.
 - **Watcher cap: 2.5 MiB** per request file (`collection.MaxFileSize`). The
   watcher sets `Event.TooLarge` from the stat it already does, so the consumer
   never parses an oversized file by accident.

@@ -79,6 +79,9 @@ func runInspect(args []string, stdout, stderr io.Writer) int {
 
 	requests := c.Requests()
 	fmt.Fprintf(stdout, "\n%d request(s), %d environment(s)\n", len(requests), len(c.Environments))
+	if c.DotEnv != nil {
+		fmt.Fprintf(stdout, ".env: %d variable(s)\n", len(c.DotEnv.Vars))
+	}
 	for _, warning := range c.Warnings {
 		fmt.Fprintf(stderr, "warning: %v\n", warning)
 	}
@@ -111,6 +114,7 @@ type collectionSummary struct {
 	Name         string               `json:"name"`
 	Requests     []requestSummary     `json:"requests"`
 	Environments []environmentSummary `json:"environments"`
+	DotEnv       *dotenvSummary       `json:"dotenv,omitempty"`
 	Warnings     []string             `json:"warnings,omitempty"`
 }
 
@@ -121,6 +125,13 @@ type requestSummary struct {
 	Path   string `json:"path"`
 	Type   string `json:"type"`
 	Seq    int    `json:"seq"`
+}
+
+// dotenvSummary lists the names in `.env`. Values are omitted, because inspect
+// output is meant to be pasteable into an issue or a CI log.
+type dotenvSummary struct {
+	Path string   `json:"path"`
+	Vars []string `json:"vars"`
 }
 
 type environmentSummary struct {
@@ -149,6 +160,13 @@ func describe(c *collection.Collection) collectionSummary {
 			Secrets: len(env.SecretNames),
 			Vars:    len(env.Vars),
 		})
+	}
+	if c.DotEnv != nil {
+		names := make([]string, 0, len(c.DotEnv.Vars))
+		for _, v := range c.DotEnv.Vars {
+			names = append(names, v.Name)
+		}
+		summary.DotEnv = &dotenvSummary{Path: c.DotEnv.Path, Vars: names}
 	}
 	for _, warning := range c.Warnings {
 		summary.Warnings = append(summary.Warnings, warning.Error())

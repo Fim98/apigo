@@ -37,6 +37,10 @@ The reference snapshot is Bruno 2.0.0 at
   - `tests/**/fixtures/**/*.bru` for feature-specific syntax
 - `internal/collection/testdata/sample/` — a complete `.bru` collection tree
   written by this project (no third-party notice needed).
+- `internal/collection/testdata/dotenv/reference.json` — inputs with the output
+  npm `dotenv.parse` 16.4.7 produces for them (`{input, dotenv}` pairs). It is the
+  parity corpus for `ParseDotEnv`; regenerate it with the npm package rather than
+  hand-editing expectations.
 - `internal/collection/testdata/bruno-yaml/` — complete OpenCollection YAML
   collection trees (`opencollection.yml`, `folder.yml`, item `.yml`,
   `environments/*.yml`) copied from Bruno's test collections, with a notice. A

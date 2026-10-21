@@ -62,6 +62,10 @@ Important details:
 - `process.env` is a separate namespace: `{{process.env.FOO}}` resolves from the
   OS environment overlaid with the collection `.env` (and workspace `.env` in the
   desktop). Only plain `.env` is loaded; `.env.*` files are inert in Bruno.
+  Priority, highest first: collection `.env` > workspace `.env` > OS environment.
+  `.env` values are never merged into the scopes above, so a name that only
+  exists in `.env` stays unresolved as a bare `{{name}}`; it needs the
+  `process.env.` prefix.
 - Environment secrets win over non-secret variables of the same name when
   `extends` is resolved.
 - A whole-string reference (`"{{count}}"`) returns the referenced value with its
@@ -72,6 +76,43 @@ Important details:
   request. The literal `{{name}}` stays in the URL/body, matching Bruno.
 - Recursive interpolation is bounded (cycle guard + max depth 10). A cycle keeps
   the last resolved text and reports a warning.
+
+### 2.1 Dotenv parsing
+
+`internal/collection` reads `<collection>/.env` with the grammar of npm `dotenv`
+v16, which is what Bruno uses. Verified case by case against `dotenv.parse`
+16.4.7; the captured corpus lives in
+`internal/collection/testdata/dotenv/reference.json` and is replayed by
+`TestParseDotEnvMatchesReference`.
+
+- `KEY=value`, `KEY: value` (a colon needs whitespace after it) and
+  `export KEY=value` are accepted; `KEY : value` and `KEY:value` are not.
+- Keys are ASCII letters, digits, `_`, `.` and `-`.
+- Blank lines and `#` comments are skipped.
+- An unquoted value ends at `#` and is trimmed; `'`, `"` and backtick values keep
+  their whitespace and may span lines. Only double quotes expand `\n` and `\r`.
+- A closing quote must be the last thing on its line apart from spaces and a
+  comment. If it is not, or if it is missing, the value falls back to the rest of
+  the line with the quotes kept — the same fallback dotenv applies.
+- `KEY=` is an empty string; a repeated key keeps its first position and takes
+  the last value.
+- A leading UTF-8 BOM is stripped and CRLF/CR line endings are normalised.
+
+Two apigo extensions, both additive:
+
+- A line that does not parse produces a warning with its line number instead of
+  being dropped silently. The rest of the file still loads.
+- An unterminated quote also warns, while keeping dotenv's fallback value.
+
+One deliberate restriction: an entry must start and end on one line (quoted
+values excepted). dotenv's pattern uses `\s*` around the separator, so a stray
+newline between a key and its `=` is accepted there; reproducing that artifact
+would mean reading `KEY` on one line and `=value` on the next as an assignment.
+
+The parsed file is exposed as `Collection.DotEnv` (`[]DotEnvVar` in file order)
+with `Collection.ProcessEnv(os.Environ(), workspaceDotEnv)` producing the merged
+map. `.env` is read whole, like Bruno: the 2.5 MiB cap in ARCHITECTURE §7 applies
+to request files, not to dotenv.
 
 ## 3. Interpolation
 

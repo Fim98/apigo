@@ -35,6 +35,13 @@ All notable changes to apigo are documented here. The format is based on
   `data:`, auth may be a bare scalar, scripts are `before-request` /
   `after-response` / `tests` / `grpc:*`, environments carry `extends`, `color`,
   `secret: true` and `externalSecrets`.
+- Dotenv (`internal/collection`): `<collection>/.env` is read with npm dotenv
+  v16 grammar (quotes, multiline values, `export`, `KEY: value`, comments) into
+  `Collection.DotEnv`; `BuildProcessEnv` merges OS environment, workspace `.env`
+  and collection `.env` for the `process.env` namespace. `.env.*` files stay
+  inert, and a malformed line is a warning, not a failed load.
+- `apigo-cli inspect` reports `.env` variable names (never values) in the tree
+  summary and in `--json`.
 - File watching (`internal/collection`): recursive `fsnotify` watcher with a
   per-path debounce window, create/update/remove events, the loader's ignore
   rules, and clean shutdown through `Close` or a cancelled context (ADR-0009).
