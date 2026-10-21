@@ -7,6 +7,7 @@ it at the end of every session, then verify with `make verify`.
 
 - Date: 2026-10-21 (Asia/Shanghai)
 - Branch: `main`
+- Commit: `f199eb4` (foundation)
 - Version: `0.1.0` (foundation)
 - Milestone: **M0 — Foundation** (nearly complete)
 - Next milestone: **M1 — Language & collection store**

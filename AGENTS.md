@@ -16,7 +16,8 @@ Bruno".
 3. [docs/ROADMAP.md](docs/ROADMAP.md) — scope and exit criteria of the milestone.
 4. [docs/BACKLOG.md](docs/BACKLOG.md) — the task you are claiming.
 5. The relevant spec: [.bru format](docs/BRU_FORMAT.md),
-   [request engine](docs/REQUEST_ENGINE.md), [scripting](docs/SCRIPTING.md),
+   [OpenCollection](docs/OPENCOLLECTION.md), [request engine](docs/REQUEST_ENGINE.md),
+   [scripting](docs/SCRIPTING.md),
    [testing](docs/TESTING.md), [release](docs/RELEASE.md).
 6. The relevant ADR in [docs/decisions/](docs/decisions/).
 7. `.agents/skills/mygo-maintenance/SKILL.md` before touching `internal/ui` or

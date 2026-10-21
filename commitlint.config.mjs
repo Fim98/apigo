@@ -23,12 +23,13 @@ export default {
         'git',
         'store',
         'docs',
+        'plan',
         'build',
         'ci',
         'deps',
         'release',
-        'test'
-      ]
-    ]
-  }
+        'test',
+      ],
+    ],
+  },
 };
