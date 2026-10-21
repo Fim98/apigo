@@ -12,8 +12,8 @@ it at the end of every session, then verify with `make verify`.
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli)
 - Version: `0.1.0` (foundation)
-- Milestone: **M1 — Language & collection store** — parser, model, loader, watcher
-  and CLI done; dotenv and OpenCollection YAML remain
+- Milestone: **M1 — Language & collection store** — parser, model, loader, watcher,
+  CLI and the OpenCollection YAML reader done; dotenv and the YAML writer remain
 - Next milestone: finish M1, then **M2 — Core request engine**
 - Working tree: M1 docs for this session
 
@@ -77,6 +77,11 @@ it at the end of every session, then verify with `make verify`.
       cycle detection, external secret blocks preserved verbatim.
 - [x] `apigo-cli fmt` / `inspect` (M1-12): atomic rewrites, `--check` exit 1,
       `--stdout`, recursive directory walk; tree and `--json` output.
+- [x] OpenCollection YAML reader (M1-13): `internal/opencollection` keeps the
+      `yaml.Node` tree (unknown keys, comments and order survive), and
+      `internal/collection/yaml.go` maps `opencollection.yml`, `folder.yml`, item
+      `.yml` and `environments/*.yml` onto the same model as `.bru`. The loader
+      detects the format, prefers YAML when both markers exist and warns.
 - [x] Watcher (M1-09): recursive `fsnotify` watcher with a per-path debounce,
       create/update/remove events, `IsDir` preserved for removed directories,
       `TooLarge` for files above the 2.5 MiB cap, new subdirectories watched as
@@ -144,17 +149,18 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M1-13 — OpenCollection YAML reader.**
-   Parse `opencollection.yml`, `collection.yml`, `folder.yml` and item `.yml` into
-   the same `Request`/`Folder` model, preserving unknown fields. Record the YAML
-   dependency decision in an ADR first (`gopkg.in/yaml.v3`, cgo-free); the loader
-   must pick YAML when `opencollection.yml` exists and `.bru` otherwise.
+1. **M1-14 — OpenCollection YAML writer.**
+   Re-read the file, patch the modelled nodes on the preserved `yaml.Node` tree,
+   and write canonical YAML (2-space indent, LF). Every vendored fixture must
+   round-trip, and an unknown key must survive an edit. This is what makes a YAML
+   collection editable instead of read-only.
 2. **M1-08a — dotenv.**
    Read `<collection>/.env` into a `process.env` map (plain `.env` only; `.env.*`
    is inert), keep it out of the normal variable scopes, and test precedence.
-3. **M1-14 — OpenCollection YAML writer.**
-   Canonical YAML output that round-trips the reader's fixtures and opens in
-   Bruno 2.0.0.
+3. **M1-12a — CLI format awareness.**
+   `apigo-cli inspect` already loads YAML collections through `collection.Load`;
+   add `fmt` support for `.yml` files (canonical YAML output) once M1-14 lands,
+   and cover the YAML path in the CLI tests.
 
 ## Blockers and open questions
 
@@ -175,9 +181,18 @@ test covers the nine vendored files.
 ## Important implementation notes (research and M1)
 
 - **Two formats, one model.** `.bru` + `bruno.json`, and OpenCollection YAML
-  (`opencollection.yml`, `collection.yml`, `folder.yml`, item `.yml`). New Bruno
-  collections default to YAML; existing `.bru` collections keep their format.
-  `opencollection.yml` wins when both config files exist. There is no `.bru.json`.
+  (`opencollection.yml`, `folder.yml`, item `.yml`, `environments/*.yml`). New
+  Bruno collections default to YAML; existing `.bru` collections keep their
+  format. `opencollection.yml` wins when both config files exist and the loader
+  records a warning. There is no `collection.yml` in the 2.0.0 snapshot.
+- **OpenCollection shapes that surprise.** Raw bodies use `data:` (not
+  `content:`); GraphQL bodies omit `type` and carry `query`/`variables`; `auth`
+  may be a bare scalar (`auth: inherit`); scripts are `before-request`,
+  `after-response`, `tests` and `grpc:*`; post-response variables are
+  `set-variable` actions. Verified in docs/OPENCOLLECTION.md §8.
+- **YAML unknown data** stays in the `yaml.Node` tree inside
+  `internal/opencollection`; the model only takes the fields it understands, and
+  the M1-14 writer patches the tree so unmodelled fields survive a save.
 - **Text blocks keep their source indentation.** `TextBlock.Text` and
   `Request.Docs`/`Scripts`/`Tests` store block content exactly as written (the
   closing brace must be at column 1). Display and script execution call
