@@ -4,7 +4,7 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-version=$(node -p "require('./mygo.json').version")
+version=$(jq -r .version mygo.json)
 tag=${1:-${GITHUB_REF_NAME:-}}
 
 if [ -z "$tag" ]; then
