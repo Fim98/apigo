@@ -1,6 +1,7 @@
 package opencollection
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
 
@@ -71,13 +72,31 @@ func (d *Document) Source() []byte {
 	return d.src
 }
 
-// Bytes re-encodes the document. Unknown fields survive because the whole node
-// tree is marshalled, not a decoded map.
+// Bytes re-encodes the document with the canonical style: two-space indent and
+// LF line endings. Unknown fields survive because the whole node tree is
+// marshalled, not a decoded map.
 func (d *Document) Bytes() ([]byte, error) {
 	if d == nil || !d.root.Valid() {
 		return []byte{}, nil
 	}
-	return yaml.Marshal(d.root.n)
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(d.root.n); err != nil {
+		return nil, err
+	}
+	if err := encoder.Close(); err != nil {
+		return nil, err
+	}
+	return bytes.ReplaceAll(buf.Bytes(), []byte("\r\n"), []byte("\n")), nil
+}
+
+// Clone deep-copies the document so callers can patch it safely.
+func (d *Document) Clone() *Document {
+	if d == nil {
+		return &Document{}
+	}
+	return &Document{src: d.src, root: d.root.Clone()}
 }
 
 // yamlError converts a yaml.v3 error into one with a position. yaml.v3 only

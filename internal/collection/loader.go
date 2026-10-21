@@ -129,6 +129,7 @@ func (c *Collection) loadConfig(ctx context.Context, abs string) error {
 		}
 		c.Config = cfg
 		c.Defaults = defaults
+		c.Source = defaults.Source
 		if _, statErr := os.Stat(filepath.Join(abs, ConfigFile)); statErr == nil {
 			c.Warnings = append(c.Warnings, fmt.Errorf("%s: %s and %s both exist; reading the OpenCollection YAML format", abs, OpenCollectionFile, ConfigFile))
 		}

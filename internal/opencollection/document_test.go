@@ -161,3 +161,132 @@ func TestFragmentDocument(t *testing.T) {
 		t.Fatalf("fragment = %q", got)
 	}
 }
+
+func TestSetReplacesInPlaceAndAppends(t *testing.T) {
+	doc, err := Parse([]byte("a: 1\nb: 2\nc: 3\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := doc.Root()
+	if err := root.Set("b", "two"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if err := root.Set("d", true); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+
+	var keys []string
+	root.Each(func(key string, _ *Node) bool {
+		keys = append(keys, key)
+		return true
+	})
+	if got := strings.Join(keys, ","); got != "a,b,c,d" {
+		t.Fatalf("key order = %s, want a,b,c,d (existing keys keep their place)", got)
+	}
+	if root.Get("b").String() != "two" {
+		t.Fatalf("b = %q", root.Get("b").String())
+	}
+	if v, ok := root.Get("d").Bool(); !ok || !v {
+		t.Fatalf("d = %+v", root.Get("d"))
+	}
+}
+
+func TestSetOnNullCreatesMapping(t *testing.T) {
+	doc, err := Parse([]byte("info:\nhttp:\n  method: GET\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// `info:` with no value is a present-but-null node: Set turns it into a
+	// mapping in place.
+	info := doc.Root().Get("info")
+	if !info.Valid() || !info.IsNull() {
+		t.Fatalf("info = valid %v null %v", info.Valid(), info.IsNull())
+	}
+	if err := info.Set("name", "filled"); err != nil {
+		t.Fatalf("set on null: %v", err)
+	}
+	if info.Get("name").String() != "filled" {
+		t.Fatal("null node was not turned into a mapping")
+	}
+
+	http := doc.Root().Get("http")
+	if err := http.Set("url", "https://example.com"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if http.Get("url").String() != "https://example.com" {
+		t.Fatalf("url = %q", http.Get("url").String())
+	}
+	if http.Get("method").String() != "GET" {
+		t.Fatal("existing entries must survive")
+	}
+}
+
+func TestDeleteAndAppend(t *testing.T) {
+	doc, err := Parse([]byte("tags: [a]\nlist:\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := doc.Root()
+	if !root.Delete("tags") {
+		t.Fatal("delete reported false")
+	}
+	if root.Delete("tags") {
+		t.Fatal("second delete must report false")
+	}
+
+	list := root.Get("list")
+	item, _ := Value("x")
+	list.Append(item)
+	if got := strings.Join(list.Strings(), ","); got != "x" {
+		t.Fatalf("list = %q", got)
+	}
+}
+
+func TestCloneIsIndependent(t *testing.T) {
+	doc, err := Parse([]byte("info:\n  name: original\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone := doc.Clone()
+	if err := clone.Root().Get("info").Set("name", "patched"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if got := doc.Root().Get("info").Get("name").String(); got != "original" {
+		t.Fatalf("original mutated: %q", got)
+	}
+	if got := clone.Root().Get("info").Get("name").String(); got != "patched" {
+		t.Fatalf("clone not patched: %q", got)
+	}
+}
+
+func TestCanonicalIndentIsTwoSpaces(t *testing.T) {
+	doc, err := Parse([]byte("root:\n    nested: 1\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "\n  nested: 1\n") {
+		t.Fatalf("expected two-space indent, got:\n%s", out)
+	}
+}
+
+func TestNewDocumentFromScratch(t *testing.T) {
+	root := NewMap()
+	http := NewMap()
+	if err := root.Set("http", http); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if err := http.Set("method", "GET"); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	out, err := NewDocument(root).Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(out); !strings.Contains(got, "http:") || !strings.Contains(got, "method: GET") {
+		t.Fatalf("output:\n%s", got)
+	}
+}

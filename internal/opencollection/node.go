@@ -229,3 +229,181 @@ func (n *Node) Strings() []string {
 	}
 	return out
 }
+
+// NewMap returns an empty mapping node, ready for Set.
+func NewMap() *Node {
+	return wrap(&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"})
+}
+
+// NewSequence returns an empty sequence node, ready for Append.
+func NewSequence() *Node {
+	return wrap(&yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"})
+}
+
+// Value wraps a Go value as a node. Maps and structs become mappings, slices
+// become sequences.
+func Value(v any) (*Node, error) {
+	var n yaml.Node
+	if err := n.Encode(v); err != nil {
+		return nil, err
+	}
+	if n.Kind == yaml.DocumentNode && len(n.Content) > 0 {
+		return wrap(n.Content[0]), nil
+	}
+	return wrap(&n), nil
+}
+
+// Prepend inserts a mapping entry at the front, which is where the format wants
+// its version key.
+func (n *Node) Prepend(key, value string) {
+	n = n.resolve()
+	if !n.Valid() {
+		return
+	}
+	node, err := Value(value)
+	if err != nil {
+		return
+	}
+	node.n.Style = yaml.DoubleQuotedStyle
+	if n.n.Kind != yaml.MappingNode {
+		n.n.Kind = yaml.MappingNode
+		n.n.Tag = "!!map"
+		n.n.Value = ""
+		n.n.Content = nil
+	}
+	pair := []*yaml.Node{
+		{Kind: yaml.ScalarNode, Tag: "!!str", Value: key},
+		node.n,
+	}
+	n.n.Content = append(pair, n.n.Content...)
+}
+
+// SetQuoted sets a mapping entry whose scalar must stay a string, and renders it
+// double-quoted the way the format writes the version field.
+func (n *Node) SetQuoted(key, value string) {
+	node, err := Value(value)
+	if err != nil {
+		return
+	}
+	node.n.Style = yaml.DoubleQuotedStyle
+	n.setNode(key, node)
+}
+
+// Set replaces a mapping entry, keeping its position, or appends a new one. A
+// missing or null node becomes a mapping first, so callers can build a section
+// without checking.
+func (n *Node) Set(key string, v any) error {
+	if node, ok := v.(*Node); ok {
+		n.setNode(key, node)
+		return nil
+	}
+	value, err := Value(v)
+	if err != nil {
+		return err
+	}
+	n.setNode(key, value)
+	return nil
+}
+
+// setNode is Set for an already-built node.
+func (n *Node) setNode(key string, value *Node) {
+	n = n.resolve()
+	if !n.Valid() {
+		return
+	}
+	if n.n.Kind != yaml.MappingNode {
+		n.n.Kind = yaml.MappingNode
+		n.n.Tag = "!!map"
+		n.n.Value = ""
+		n.n.Content = nil
+	}
+	if !value.Valid() {
+		n.Delete(key)
+		return
+	}
+	for i := 0; i+1 < len(n.n.Content); i += 2 {
+		if n.n.Content[i].Value == key {
+			n.n.Content[i+1] = value.n
+			return
+		}
+	}
+	n.n.Content = append(
+		n.n.Content,
+		&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key},
+		value.n,
+	)
+}
+
+// Delete removes a mapping entry and reports whether it was there.
+func (n *Node) Delete(key string) bool {
+	n = n.resolve()
+	if n == nil || n.n.Kind != yaml.MappingNode {
+		return false
+	}
+	for i := 0; i+1 < len(n.n.Content); i += 2 {
+		if n.n.Content[i].Value != key {
+			continue
+		}
+		n.n.Content = append(n.n.Content[:i], n.n.Content[i+2:]...)
+		return true
+	}
+	return false
+}
+
+// SetAt replaces a sequence item.
+func (n *Node) SetAt(i int, value *Node) bool {
+	n = n.resolve()
+	if n == nil || n.n.Kind != yaml.SequenceNode || value == nil || !value.Valid() {
+		return false
+	}
+	if i < 0 || i >= len(n.n.Content) {
+		return false
+	}
+	n.n.Content[i] = value.n
+	return true
+}
+
+// Append adds items to a sequence, turning a missing or null node into one.
+func (n *Node) Append(items ...*Node) {
+	n = n.resolve()
+	if !n.Valid() {
+		return
+	}
+	if n.n.Kind != yaml.SequenceNode {
+		n.n.Kind = yaml.SequenceNode
+		n.n.Tag = "!!seq"
+		n.n.Value = ""
+		n.n.Content = nil
+	}
+	for _, item := range items {
+		if item.Valid() {
+			n.n.Content = append(n.n.Content, item.n)
+		}
+	}
+}
+
+// Clone deep-copies the node so a writer can patch a model's source document
+// without mutating it.
+func (n *Node) Clone() *Node {
+	if !n.Valid() {
+		return nil
+	}
+	return wrap(cloneNode(n.n))
+}
+
+func cloneNode(in *yaml.Node) *yaml.Node {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	if in.Alias != nil {
+		out.Alias = cloneNode(in.Alias)
+	}
+	if len(in.Content) > 0 {
+		out.Content = make([]*yaml.Node, len(in.Content))
+		for i, child := range in.Content {
+			out.Content[i] = cloneNode(child)
+		}
+	}
+	return &out
+}

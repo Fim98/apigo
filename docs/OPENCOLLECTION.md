@@ -6,10 +6,10 @@ Status: **verified for reading**. Bruno 2.0 ships two collection formats:
 - OpenCollection YAML (`opencollection.yml` + `folder.yml` + item `.yml` files),
   the default for new collections in Bruno 2.x.
 
-apigo must edit both. M1-13 (reader) is implemented in
-`internal/opencollection` (YAML document layer) and `internal/collection/yaml.go`
-(schema mapping); M1-14 adds the writer, M8 the migration. §8 records the shapes
-verified against Bruno fixtures, which corrected several guesses in §3.
+apigo must edit both. The reader (M1-13) lives in `internal/opencollection` (YAML
+document layer) and `internal/collection/yaml.go` (schema mapping); the writer
+(M1-14) is `internal/collection/yaml_write.go`; M8 adds the migration. §8 records
+the shapes verified against Bruno fixtures, which corrected several guesses in §3.
 
 ## 1. Format detection
 
@@ -198,9 +198,26 @@ The printer for each format is separate.
 - Read: preserve unknown keys and ordering where the YAML library allows it
   (use `yaml.Node`, not `map[string]any`).
 - Write: canonical YAML, 2-space indent, LF, quoted strings only where needed.
-- Convert `.bru` → YAML and YAML → `.bru` through the model, with a warning list
-  for fields that cannot be represented.
+  The version key is written first.
+- **Write by patching, not re-serialising.** `MarshalYAML*` clones
+  `Request.Source`/`Folder.Source`/`Environment.Source` and updates only the
+  fields the model owns:
+  - block level: `info`, the protocol block, `runtime`, `settings`, `docs`;
+  - list items: merged by index, so a `x-vendor` key inside a header, variable or
+    form entry survives as long as the list length is unchanged;
+  - `auth`: scalars are patched in place, so nested fields such as OAuth2
+    `additional_params` stay;
+  - actions: non-`set-variable` entries are kept and re-emitted;
+  - `examples`: rebuilt from the stored YAML fragments only when the model's count
+    changed.
+- A model built in memory (no `Source`) writes a fresh document with the blocks
+  the model has. `.bru` → YAML conversion is M8, and it cannot carry `.bru`
+  examples (their content is not YAML).
 - Never silently drop scripts, assertions, examples or unknown extensions.
+- Known losses on write, recorded here rather than discovered later:
+  `timeout: inherit` becomes `timeout: <ms>` (the YAML format has no inherit
+  value); `docs.type` is only written when the block is created; `selector.method`
+  is written as `jsonq`, the only value the reader produces.
 - `bruno.json` ↔ `config` mapping is lossy in both directions; record unmapped
   keys in `Extra`.
 

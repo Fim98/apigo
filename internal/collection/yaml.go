@@ -174,7 +174,7 @@ func ParseYAMLEnvironment(path, name string, src []byte) (*Environment, error) {
 		return nil, yamlPathError(path, err)
 	}
 	root := doc.Root()
-	env := &Environment{Name: root.Get("name").StringOr(name), Path: path}
+	env := &Environment{Name: root.Get("name").StringOr(name), Path: path, Source: doc}
 	if env.Name == "" {
 		env.Name = name
 	}
@@ -380,8 +380,9 @@ func applyYAMLBody(body *Body, node *opencollection.Node) {
 	}
 	kind := node.Get("type").String()
 	data := node.Get("data")
-	if kind == "" && node.Has("query") {
-		// GraphQL bodies omit `type`; the query field identifies them.
+	if kind == "" && (node.Has("query") || node.Has("variables")) {
+		// GraphQL bodies omit `type`; query/variables identify them, and a body
+		// with only variables is still GraphQL.
 		kind = "graphql"
 	}
 

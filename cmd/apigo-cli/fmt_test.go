@@ -240,3 +240,98 @@ func TestHelpMentionsCommands(t *testing.T) {
 		}
 	}
 }
+
+// TestFmtYAMLCollection formats an OpenCollection tree: the root file, a folder
+// and an item, plus an environment.
+func TestFmtYAMLCollection(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"opencollection.yml":     "info:\n    name: yaml-collection\n",
+		"users/folder.yml":       "info:\n    name: Users\n    type: folder\n",
+		"users/get.yml":          "info:\n    name: Get\n    type: http\nhttp:\n    method: GET\n    url: https://example.com\n",
+		"environments/Local.yml": "name: Local\nvariables:\n    - name: host\n      value: https://a\n",
+	}
+	for name, content := range files {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	var out, errOut bytes.Buffer
+	if code := runFmt([]string{"--check", dir}, &out, &errOut); code != 1 {
+		t.Fatalf("check before format: exit %d, want 1; stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), "opencollection.yml") || !strings.Contains(out.String(), "Local.yml") {
+		t.Fatalf("check output = %q", out.String())
+	}
+
+	out.Reset()
+	errOut.Reset()
+	if code := runFmt([]string{dir}, &out, &errOut); code != 0 {
+		t.Fatalf("format: exit %d, stderr %q", code, errOut.String())
+	}
+
+	item, err := os.ReadFile(filepath.Join(dir, "users", "get.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(item), "\n  method: GET\n") {
+		t.Fatalf("item not canonicalised:\n%s", item)
+	}
+	root, err := os.ReadFile(filepath.Join(dir, "opencollection.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(string(root), `opencollection: "1.0.0"`) {
+		t.Fatalf("root file missing the format version:\n%s", root)
+	}
+
+	out.Reset()
+	errOut.Reset()
+	if code := runFmt([]string{"--check", dir}, &out, &errOut); code != 0 {
+		t.Fatalf("check after format: exit %d\n%s", code, out.String())
+	}
+}
+
+// TestFmtLeavesUnrelatedYAMLAlone guards against rewriting files that only look
+// like YAML: a compose file or CI config must never be touched.
+func TestFmtLeavesUnrelatedYAMLAlone(t *testing.T) {
+	dir := t.TempDir()
+	compose := "services:\n    web:\n        image: nginx\n"
+	path := filepath.Join(dir, "docker-compose.yml")
+	if err := os.WriteFile(path, []byte(compose), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "request.bru"), []byte(unformatted), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out, errOut bytes.Buffer
+	if code := runFmt([]string{dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != compose {
+		t.Fatalf("compose file was rewritten:\n%s", after)
+	}
+	if strings.Contains(out.String(), "docker-compose.yml") {
+		t.Fatalf("compose file reported: %q", out.String())
+	}
+
+	// An explicit path is an error, not a silent rewrite.
+	out.Reset()
+	errOut.Reset()
+	if code := runFmt([]string{path}, &out, &errOut); code != 2 {
+		t.Fatalf("explicit compose file: exit %d, want 2", code)
+	}
+	if !strings.Contains(errOut.String(), "not an OpenCollection file") {
+		t.Fatalf("stderr %q", errOut.String())
+	}
+}

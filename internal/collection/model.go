@@ -191,6 +191,13 @@ type Settings struct {
 	Extra []bru.Pair
 }
 
+// IsZero reports whether no setting is set, so a writer can skip the block.
+func (s Settings) IsZero() bool {
+	return !s.EncodeURL && s.FollowRedirects == nil && s.MaxRedirects == nil &&
+		s.TimeoutMS == 0 && !s.TimeoutInherit && s.ForwardAuthorizationHeader == nil &&
+		len(s.OmitHeaders) == 0 && s.KeepAliveInterval == nil && len(s.Extra) == 0
+}
+
 // Example is a saved request/response example. Content is the example block's
 // body, preserved verbatim until the example grammar is modelled.
 type Example struct {
@@ -325,6 +332,8 @@ type Collection struct {
 	Environments []*Environment
 	// Tree is the root's entries in display order.
 	Tree []*Node
+	// Source is the parsed root document for a YAML collection; nil for `.bru`.
+	Source *opencollection.Document
 	// root is the synthetic node that carries collection.bru, so a node's
 	// ancestor chain includes the collection defaults.
 	root *Node

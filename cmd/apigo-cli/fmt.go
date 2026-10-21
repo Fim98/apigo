@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"apigo/internal/bru"
+	"apigo/internal/collection"
 )
 
 // fmtOptions holds the flags of the fmt command.
@@ -94,24 +95,81 @@ func runFmt(args []string, stdout, stderr io.Writer) int {
 }
 
 // formatFile parses a file and returns its canonical form. Environment files,
-// recognised by living in an environments directory, use the env grammar.
+// recognised by living in an environments directory, use the env grammar; `.yml`
+// and `.yaml` files use the OpenCollection writer.
 func formatFile(path string) (string, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
+	yamlFile := strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml")
+
 	if isEnvFile(path) {
+		if yamlFile {
+			env, err := collection.ParseYAMLEnvironment(path, envName(path), src)
+			if err != nil {
+				return "", err
+			}
+			out, err := collection.MarshalYAMLEnvironment(env)
+			return string(out), err
+		}
 		env, err := bru.ParseEnv(path, src)
 		if err != nil {
 			return "", err
 		}
 		return string(bru.FormatEnv(env)), nil
 	}
+	if yamlFile {
+		if !isOpenCollectionYAML(path) {
+			return "", fmt.Errorf("%s: not an OpenCollection file (no %s in its directory tree)", path, collection.OpenCollectionFile)
+		}
+		return formatYAMLFile(path, src)
+	}
 	file, err := bru.Parse(path, src)
 	if err != nil {
 		return "", err
 	}
 	return bru.FormatString(file), nil
+}
+
+// formatYAMLFile canonicalises an OpenCollection file by kind.
+func formatYAMLFile(path string, src []byte) (string, error) {
+	switch filepath.Base(path) {
+	case collection.OpenCollectionFile, collection.OpenCollectionAltFile:
+		cfg, defaults, err := collection.ParseYAMLCollection(path, src)
+		if err != nil {
+			return "", err
+		}
+		c := &collection.Collection{Config: cfg, Defaults: defaults}
+		if defaults != nil {
+			c.Source = defaults.Source
+		}
+		out, err := collection.MarshalYAMLCollection(c)
+		return string(out), err
+	case collection.YAMLFolderFile, collection.YAMLFolderAltFile:
+		folder, err := collection.ParseYAMLFolder(path, filepath.Base(path), src)
+		if err != nil {
+			return "", err
+		}
+		out, err := collection.MarshalYAMLFolder(folder)
+		return string(out), err
+	default:
+		req, err := collection.ParseYAMLRequest(path, filepath.Base(path), src)
+		if err != nil {
+			return "", err
+		}
+		out, err := collection.MarshalYAMLRequest(req)
+		return string(out), err
+	}
+}
+
+// envName is the environment's display name, derived from the file name.
+func envName(path string) string {
+	base := filepath.Base(path)
+	base = strings.TrimSuffix(base, ".bru")
+	base = strings.TrimSuffix(base, ".yml")
+	base = strings.TrimSuffix(base, ".yaml")
+	return base
 }
 
 // isEnvFile reports whether path is an environment file.
@@ -143,7 +201,10 @@ func collectFiles(paths []string, stderr io.Writer) ([]string, int) {
 				}
 				return nil
 			}
-			if strings.HasSuffix(name, ".bru") {
+			switch {
+			case strings.HasSuffix(name, ".bru"):
+				files = append(files, path)
+			case (strings.HasSuffix(name, ".yml") || strings.HasSuffix(name, ".yaml")) && isOpenCollectionYAML(path):
 				files = append(files, path)
 			}
 			return nil
@@ -154,10 +215,34 @@ func collectFiles(paths []string, stderr io.Writer) ([]string, int) {
 		}
 	}
 	if len(files) == 0 {
-		fmt.Fprintf(stderr, "apigo fmt: no .bru files found\n")
+		fmt.Fprintf(stderr, "apigo fmt: no .bru files or OpenCollection YAML found\n")
 		return nil, 2
 	}
 	return files, 0
+}
+
+// isOpenCollectionYAML reports whether a YAML file belongs to an OpenCollection:
+// it is the collection file itself, or a file with opencollection.yml somewhere
+// above it. Anything else (compose files, CI config) is left alone.
+func isOpenCollectionYAML(path string) bool {
+	base := filepath.Base(path)
+	if base == collection.OpenCollectionFile || base == collection.OpenCollectionAltFile {
+		return true
+	}
+	dir := filepath.Dir(path)
+	for range 64 {
+		for _, name := range []string{collection.OpenCollectionFile, collection.OpenCollectionAltFile} {
+			if info, err := os.Stat(filepath.Join(dir, name)); err == nil && !info.IsDir() {
+				return true
+			}
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return false
+		}
+		dir = parent
+	}
+	return false
 }
 
 // writeFileAtomic replaces path with data without ever leaving a partial file.
@@ -206,6 +291,7 @@ Flags:
   -c, --check    list files that would change; exit 1 if any
   -s, --stdout   print the formatted file instead of writing it
 
-Paths may be .bru files or directories (searched recursively, skipping
-hidden directories and node_modules).
+Paths may be .bru, .yml or .yaml files, or directories (searched
+recursively, skipping hidden directories and node_modules). OpenCollection
+files are canonicalised by the YAML writer.
 `

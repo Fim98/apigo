@@ -19,6 +19,13 @@ All notable changes to apigo are documented here. The format is based on
   ignore rules, `seq` ordering and a 2.5 MiB per-file cap.
 - Environment resolution with `extends` chains, cycle detection and
   `vars:secret` names whose values never touch the file.
+- OpenCollection YAML writer: `MarshalYAMLRequest`/`Folder`/`Collection`/
+  `Environment` patch a clone of the file's `yaml.Node` tree, so unknown keys —
+  including ones inside headers, variables, auth blocks and actions — survive an
+  edit. Output is canonical (2-space indent, LF, version key first).
+- `apigo-cli fmt` now canonicalises OpenCollection files too, and refuses to
+  touch YAML that does not belong to a collection (a compose file or CI config
+  is never rewritten).
 - OpenCollection YAML reader (`internal/opencollection`, `internal/collection`):
   `opencollection.yml`, `folder.yml`, item `.yml` and environment `.yml` files
   load into the same request/folder/environment model as `.bru`, with unknown

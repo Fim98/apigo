@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"apigo/internal/bru"
+	"apigo/internal/opencollection"
 )
 
 // Environment is one file under environments/.
@@ -29,6 +30,9 @@ type Environment struct {
 	// External holds vars:externalsecrets:<provider> blocks. They are preserved
 	// but not resolved until a provider is implemented.
 	External []ExternalSecretProvider
+
+	// Source is the parsed document for a YAML environment; nil for `.bru`.
+	Source *opencollection.Document
 }
 
 // ExternalSecretProvider is a preserved external secret block.
