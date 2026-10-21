@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose a capability or a change in behavior
+labels: ['enhancement', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Check the capability matrix first: the feature may
+        already be planned under a milestone.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do that apigo does not support?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should happen? Include a Bruno comparison if relevant.
+    validations:
+      required: true
+  - type: input
+    id: matrix
+    attributes:
+      label: Capability matrix row
+      description: If this maps to a row, paste its ID (e.g. B21).
+  - type: dropdown
+    id: parity
+    attributes:
+      label: Relation to Bruno
+      options:
+        - Bruno parity (must match)
+        - Bruno extension (new behavior)
+        - Internal/quality change

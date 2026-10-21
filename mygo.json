@@ -1,0 +1,12 @@
+{
+  "name": "apigo",
+  "identifier": "com.example.apigo",
+  "version": "0.1.0",
+  "out": "build",
+  "main": "./cmd/apigo",
+  "linux": {
+    "webview": false,
+    "categories": ["Development", "Network"],
+    "comment": "Offline-first API client compatible with Bruno collections"
+  }
+}

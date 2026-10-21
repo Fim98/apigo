@@ -1,0 +1,8 @@
+build/
+dist/
+.mygo/
+node_modules/
+coverage/
+go.sum
+package-lock.json
+.husky/_

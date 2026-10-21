@@ -1,0 +1,38 @@
+{
+  "name": "apigo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A fast, offline-first, Bruno-compatible API client built with Go and MyGo.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "prepare": "husky",
+    "format": "npm run format:go && npm run format:docs",
+    "format:go": "go tool gofumpt -w .",
+    "format:docs": "prettier --write \"**/*.{md,yml,yaml,json,jsonc}\"",
+    "format:check": "npm run format:check:go && npm run format:check:docs",
+    "format:check:go": "sh -c 'test -z \"$(go tool gofumpt -l .)\"'",
+    "format:check:docs": "prettier --check \"**/*.{md,yml,yaml,json,jsonc}\"",
+    "lint:docs": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#build\" \"#dist\" \"#.mygo\" \"#CHANGELOG.md\" \"#docs/research\"",
+    "verify": "./scripts/verify.sh",
+    "release:check": "./scripts/check-release.sh"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "markdownlint-cli2": "0.24.0",
+    "prettier": "3.9.10"
+  },
+  "lint-staged": {
+    "*.go": [
+      "go tool gofumpt -w"
+    ],
+    "*.{md,yml,yaml,json,jsonc}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

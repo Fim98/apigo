@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Tag, mygo.json and CHANGELOG agree
+        run: ./scripts/check-release.sh "$GITHUB_REF_NAME"
+
+  build:
+    name: Package (${{ matrix.name }})
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            platform: darwin/universal
+            artifact: build/**/*.dmg
+          - name: Windows
+            os: ubuntu-latest
+            platform: windows/amd64,windows/arm64
+            artifact: build/**/*Setup*.exe
+          - name: Linux
+            os: ubuntu-latest
+            platform: linux/amd64,linux/arm64
+            artifact: |
+              build/**/*.deb
+              build/**/*.tar.gz
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install NSIS (Windows installers on Linux)
+        if: matrix.name == 'Windows'
+        run: sudo apt-get update && sudo apt-get install -y nsis
+      - name: Build packages
+        run: go tool mygo build -platform "${{ matrix.platform }}" -o build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apigo-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
+
+  cli:
+    name: CLI binaries
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build apigo-cli
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -eu
+          version="${VERSION#v}"
+          mkdir -p build/cli
+          for target in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            out="build/cli/apigo-cli-${os}-${arch}"
+            if [ "$os" = "windows" ]; then out="${out}.exe"; fi
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
+              -ldflags "-s -w -X apigo/internal/version.Value=${version}" \
+              -o "$out" ./cmd/apigo-cli
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apigo-cli
+          path: build/cli/*
+          if-no-files-found: error
+          retention-days: 7
+
+  draft-release:
+    name: Draft release
+    needs: [build, cli]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          path: release
+          merge-multiple: true
+      - name: Create checksums
+        run: |
+          set -eu
+          cd release
+          find . -type f \( -name '*.dmg' -o -name '*Setup*.exe' -o -name '*.deb' -o -name '*.tar.gz' -o -name 'apigo-cli-*' \) -print0 \
+            | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Release notes
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME#v}"
+          ./scripts/changelog-section.sh "$version" > release-notes.md
+          {
+            echo "## apigo ${GITHUB_REF_NAME}"
+            echo
+            cat release-notes.md
+            echo
+            echo "### Checksums"
+            echo
+            echo 'See `SHA256SUMS.txt` in the release assets.'
+          } > notes.md
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release already exists; uploading assets."
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --draft --verify-tag --title "apigo $GITHUB_REF_NAME" --notes-file notes.md
+          fi
+          find release -type f \( -name '*.dmg' -o -name '*Setup*.exe' -o -name '*.deb' \
+            -o -name '*.tar.gz' -o -name 'apigo-cli-*' -o -name 'SHA256SUMS.txt' \) \
+            -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber

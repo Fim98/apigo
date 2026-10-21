@@ -1,0 +1,19 @@
+{
+  "config": {
+    "MD013": false,
+    "MD024": { "siblings_only": true },
+    "MD033": false,
+    "MD034": false,
+    "MD036": false,
+    "MD041": true,
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules/**",
+    "build/**",
+    "dist/**",
+    ".mygo/**",
+    "CHANGELOG.md",
+    "docs/research/**",
+  ],
+}

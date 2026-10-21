@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Prettier
+        run: npx prettier --check "**/*.{md,yml,yaml,json,jsonc}"
+      - name: markdownlint
+        run: npx markdownlint-cli2 "**/*.md" "#node_modules" "#build" "#dist" "#.mygo" "#CHANGELOG.md"
+
+  lint:
+    name: Go lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: gofumpt
+        run: test -z "$(go tool gofumpt -l .)"
+      - name: go vet
+        run: go vet ./...
+      - name: MyGo UI lifetime vet
+        run: go tool mygo vet .
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          args: --timeout=5m
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test
+        env:
+          CGO_ENABLED: 0
+        run: go test ./...
+
+  race:
+    name: Race (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Race detector
+        env:
+          CGO_ENABLED: 0
+        run: go test -race ./...
+
+  build:
+    name: Package (${{ matrix.name }})
+    needs: [lint, test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            platform: darwin/universal
+            artifact: build/**/*.dmg
+          - name: Windows
+            os: ubuntu-latest
+            platform: windows/amd64,windows/arm64
+            artifact: build/**/*Setup*.exe
+          - name: Linux
+            os: ubuntu-latest
+            platform: linux/amd64,linux/arm64
+            artifact: |
+              build/**/*.deb
+              build/**/*.tar.gz
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install NSIS (Windows installers on Linux)
+        if: matrix.name == 'Windows'
+        run: sudo apt-get update && sudo apt-get install -y nsis
+      - name: Build packages
+        run: go tool mygo build -platform "${{ matrix.platform }}" -o build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apigo-${{ matrix.name }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7

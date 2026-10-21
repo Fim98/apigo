@@ -1,0 +1,44 @@
+# Builds
+/build/
+/dist/
+/.mygo/
+/mygo_windows_*.syso
+*.app/
+*.dmg
+*.deb
+*.snap
+*.tar.gz
+
+# Go
+/coverage.out
+/coverage.html
+*.test
+*.prof
+/vendor/
+
+# Node tooling (Husky, Prettier, markdownlint)
+/node_modules/
+/.husky/_
+npm-debug.log*
+pnpm-debug.log*
+
+# Signing and update material: never commit private keys or certificates
+*.p12
+*.pfx
+*.key
+*.pem
+mygo-update.key
+mygo-update.pub
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
