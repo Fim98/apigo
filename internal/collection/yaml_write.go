@@ -553,9 +553,17 @@ func writeYAMLRuntime(root *opencollection.Node, varsPre, varsPost []Variable, a
 	mergeList(runtime, "assertions", nodes, ownedAssertion)
 }
 
-// writeYAMLSettings patches a settings block.
+// writeYAMLSettings patches a settings block. A collection without one only gets
+// the block when the model carries a non-default value, so a save never invents
+// `encodeUrl: false, timeout: 0`.
 func writeYAMLSettings(root *opencollection.Node, s Settings) {
-	node := ensureMap(root, "settings")
+	node := root.Get("settings")
+	if !node.IsMap() {
+		if s.IsZero() {
+			return
+		}
+		node = ensureMap(root, "settings")
+	}
 	_ = node.Set("encodeUrl", s.EncodeURL)
 	if s.FollowRedirects != nil {
 		_ = node.Set("followRedirects", *s.FollowRedirects)

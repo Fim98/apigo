@@ -469,3 +469,53 @@ docs:
 		t.Fatalf("docs type lost:\n%s", out)
 	}
 }
+
+func TestMarshalYAMLCollectionDoesNotInventSettings(t *testing.T) {
+	src := []byte(`opencollection: '1.0.0'
+info:
+  name: minimal
+request:
+  headers:
+    - name: Accept
+      value: '*/*'
+`)
+	cfg, defaults, err := ParseYAMLCollection("opencollection.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	c := &Collection{Config: cfg, Defaults: defaults, Source: defaults.Source}
+	out, err := MarshalYAMLCollection(c)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(out), "settings:") {
+		t.Fatalf("a settings block was invented:\n%s", out)
+	}
+	if !strings.Contains(string(out), "name: Accept") {
+		t.Fatalf("headers lost:\n%s", out)
+	}
+}
+
+func TestMarshalYAMLRequestSettingsOnlyWhenPresent(t *testing.T) {
+	src := []byte("info:\n  name: bare\n  type: http\nhttp:\n  url: https://a\n")
+	req, err := ParseYAMLRequest("bare.yml", "bare.yml", src)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	out, err := MarshalYAMLRequest(req)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(out), "settings:") {
+		t.Fatalf("a settings block was invented:\n%s", out)
+	}
+
+	req.Settings.TimeoutMS = 5000
+	out, err = MarshalYAMLRequest(req)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !strings.Contains(string(out), "timeout: 5000") {
+		t.Fatalf("settings were not written when set:\n%s", out)
+	}
+}
