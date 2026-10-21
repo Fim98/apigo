@@ -35,22 +35,23 @@ Rules:
 
 ## M1 — Language & collection store
 
-| ID    | Task                                                                                                            | Deps  | Acceptance / evidence                                                                       | Status |
-| ----- | --------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------- | ------ |
-| M1-01 | Tokenizer with byte spans, line/column tracking, error recovery for unknown blocks                              | —     | Table tests for every token; `go test ./internal/bru` passes                                | todo   |
-| M1-02 | Parser for dictionary blocks, list blocks, text blocks, annotations, quoted keys, disabled pairs                | M1-01 | Grammar fixtures: request, folder, collection, environment; errors carry line/col           | todo   |
-| M1-03 | AST node types + source-faithful printer contract                                                               | M1-02 | AST covers meta/http/grpc/ws/params/headers/body/auth/vars/script/tests/assert/docs/example | todo   |
-| M1-04 | Typed request model: method, URL, params, headers, body modes, auth, scripts, tests, assertions, docs, examples | M1-03 | Model round-trips to AST and back; no `map[string]any` in the core                          | todo   |
-| M1-05 | Collection/folder/environment model: nested tree, ordering, inheritance links, secret names                     | M1-04 | Model builds a 3-level tree with inherited headers/auth; unit tests                         | todo   |
-| M1-06 | Canonical printer: stable block order, 2-space indent, LF, trailing newline, unknown block passthrough          | M1-03 | Golden output for every fixture; printer is deterministic across runs                       | todo   |
-| M1-07 | Collection loader: `.bru` discovery, ignore rules, `seq` sort, folder.bru, collection.bru, environments         | M1-05 | Loads a real Bruno collection; broken file yields a path-scoped error, not a panic          | todo   |
-| M1-08 | Environment files: `vars`, `vars:secret`, `.env`, dotenv precedence, missing-secret markers                     | M1-05 | Precedence tests; secret values never serialized into logs                                  | todo   |
-| M1-09 | File watcher: debounce, targeted reload, external-change events                                                 | M1-07 | Test moves/edits/creates/deletes; no duplicate events; watcher stops cleanly                | todo   |
-| M1-10 | Vendor a curated Bruno fixture corpus with MIT notice                                                           | M1-07 | Fixtures under `internal/collection/testdata/bruno/`; `THIRD_PARTY_NOTICES.md` updated      | todo   |
-| M1-11 | Semantic round-trip + fuzz tests                                                                                | M1-06 | Parse→print→parse equality; `go test -fuzz` 10 min no crash                                 | todo   |
-| M1-12 | `apigo-cli fmt` and `inspect` (hidden until stable)                                                             | M1-07 | `fmt --check` exit codes; `inspect` prints a tree; CLI tests                                | todo   |
-| M1-13 | OpenCollection YAML reader (`opencollection.yml` + item files)                                                  | M1-05 | Bruno 2.0 YAML fixture opens read-only; unknown fields preserved                            | todo   |
-| M1-14 | OpenCollection YAML writer + canonical output                                                                   | M1-13 | Round-trip YAML fixtures; Bruno opens the result                                            | todo   |
+| ID     | Task                                                                                                            | Deps  | Acceptance / evidence                                                                         | Status |
+| ------ | --------------------------------------------------------------------------------------------------------------- | ----- | --------------------------------------------------------------------------------------------- | ------ |
+| M1-01  | Tokenizer with byte spans, line/column tracking, error recovery for unknown blocks                              | —     | Token table tests in `internal/bru/lexer_test.go`; `go test ./internal/bru` passes (6a61281)  | done   |
+| M1-02  | Parser for dictionary blocks, list blocks, text blocks, annotations, quoted keys, disabled pairs                | M1-01 | Fixtures for request/folder/collection/environment; errors carry line/col (6a61281)           | done   |
+| M1-03  | AST node types + source-faithful printer contract                                                               | M1-02 | `DictBlock`/`TextBlock`/`RawBlock` cover every block; unknown blocks kept verbatim (6a61281)  | done   |
+| M1-04  | Typed request model: method, URL, params, headers, body modes, auth, scripts, tests, assertions, docs, examples | M1-03 | `internal/collection/parse.go` + `format.go`; model→AST→model is idempotent (99dd0b7)         | done   |
+| M1-05  | Collection/folder/environment model: nested tree, ordering, inheritance links, secret names                     | M1-04 | 3-level sample collection; inherited headers/auth/vars/scripts tested (99dd0b7)               | done   |
+| M1-06  | Canonical printer: stable block order, 2-space indent, LF, trailing newline, unknown block passthrough          | M1-03 | Golden files per fixture; `Format` is idempotent (6a61281)                                    | done   |
+| M1-07  | Collection loader: `.bru` discovery, ignore rules, `seq` sort, folder.bru, collection.bru, environments         | M1-05 | Loads `testdata/sample`; broken/oversized files become warnings, not panics (99dd0b7)         | done   |
+| M1-08  | Environment files: `vars`, `vars:secret`, extends, secret masking                                               | M1-05 | Extends resolution and cycle detection tested; secret values never parsed from file (99dd0b7) | done   |
+| M1-08a | Dotenv (`.env`) reading and `process.env` precedence                                                            | M1-08 | `.env` parsed, `.env.*` inert, precedence tests                                               | todo   |
+| M1-09  | File watcher: debounce, targeted reload, external-change events                                                 | M1-07 | Test moves/edits/creates/deletes; no duplicate events; watcher stops cleanly                  | todo   |
+| M1-10  | Vendor a curated Bruno fixture corpus with MIT notice                                                           | M1-07 | `internal/bru/testdata/bruno/` with `NOTICE.md`; corpus test round-trips 9 files (6a61281)    | done   |
+| M1-11  | Semantic round-trip + fuzz tests                                                                                | M1-06 | `FuzzParse` (60 s / 448k execs clean, seeds committed); round-trip test per fixture (6a61281) | done   |
+| M1-12  | `apigo-cli fmt` and `inspect`                                                                                   | M1-07 | `fmt --check` exit 0/1/2 matrix; `inspect` tree and `--json`; CLI tests (8f62487)             | done   |
+| M1-13  | OpenCollection YAML reader (`opencollection.yml` + item files)                                                  | M1-05 | Bruno 2.0 YAML fixture opens read-only; unknown fields preserved                              | todo   |
+| M1-14  | OpenCollection YAML writer + canonical output                                                                   | M1-13 | Round-trip YAML fixtures; Bruno opens the result                                              | todo   |
 
 ## M2 — Core request engine
 

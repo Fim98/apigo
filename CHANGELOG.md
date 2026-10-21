@@ -8,6 +8,21 @@ All notable changes to apigo are documented here. The format is based on
 
 ### Added
 
+- `.bru` language support (`internal/bru`): lexer with byte spans and
+  line/column tracking, block parser for request, folder, collection and
+  environment files, canonical printer, and a parser that preserves unknown
+  blocks and duplicate keys.
+- Collection model and loader (`internal/collection`): typed requests, folders,
+  auth, body modes, variables, assertions, scripts and settings; collection →
+  folder → request inheritance for headers, auth, variables and scripts;
+  `bruno.json`, `collection.bru`, `folder.bru` and `environments/` loading with
+  ignore rules, `seq` ordering and a 2.5 MiB per-file cap.
+- Environment resolution with `extends` chains, cycle detection and
+  `vars:secret` names whose values never touch the file.
+- `apigo-cli fmt` (rewrite or `--check` `.bru` files in canonical form) and
+  `apigo-cli inspect` (tree and `--json` summary of a collection).
+- Parser conformance corpus: hand-written fixtures with golden output plus
+  vendored Bruno 2.0.0 files under `internal/bru/testdata/bruno/`.
 - Agent workflow: 20 engineering skills vendored under `.agents/skills/`, with
   per-repo configuration in `docs/agents/` (issue tracker, triage labels, domain
   docs) and a seeded root `GLOSSARY.md`.
