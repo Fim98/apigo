@@ -17,22 +17,21 @@ Rules:
 
 ## M0 — Foundation
 
-| ID    | Task                                                                                                | Deps      | Acceptance / evidence                                               | Status  |
-| ----- | --------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------- | ------- |
-| M0-01 | Write AGENTS, roadmap, architecture, format, engine, scripting, testing, release, security and ADRs | —         | Docs exist, links resolve, `markdownlint` passes                    | done    |
-| M0-02 | Restructure into `cmd/apigo`, `cmd/apigo-cli`, `internal/version`; set `mygo.json` `main`           | —         | `make run`, `go run ./cmd/apigo-cli version`, `make test` pass      | done    |
-| M0-03 | gofumpt, Prettier, markdownlint, Husky hooks, commitlint, Makefile, verify script                   | —         | `make verify` passes; a bad commit message is rejected              | done    |
-| M0-04 | Initialize Git on `main`, add `.gitignore`/`.gitattributes`/`.editorconfig`, first commit           | M0-01..03 | `git log` shows the foundation commit; `git status` clean           | done    |
-| M0-05 | CI workflow: docs, lint, tests on macOS/Ubuntu/Windows, packaging build                             | M0-02     | Workflow is valid YAML; all jobs pass on the first push             | partial |
-| M0-06 | Release workflow: tag/version check, build matrix, draft release, checksums                         | M0-05     | A `v0.1.0` dry run uploads dmg/exe/deb/tar.gz to a draft            | partial |
-| M0-07 | CLI skeleton: `version`, `help`, exit codes, tests                                                  | M0-02     | `go test ./cmd/apigo-cli` passes; `--help` exits 0, unknown exits 2 | done    |
-| M0-08 | Add PR template, issue templates and Dependabot config                                              | M0-04     | Files present; Dependabot config parses                             | done    |
-| M0-09 | Add third-party notices for Bruno fixtures and research                                             | M0-01     | Notice lists Bruno 2.0.0, MIT, commit `dd0281d`                     | done    |
-| M0-10 | Choose project license and final app identifier                                                     | —         | Owner decision recorded in ADR; `package.json`/`mygo.json` updated  | blocked |
-| M0-11 | Create GitHub repository, push `main`, set secrets, enable branch protection                        | M0-10     | Remote exists; CI green; secrets documented                         | blocked |
-| M0-12 | Validate a real `mygo build` locally and record artifact names                                      | M0-02     | `go tool mygo build` succeeds; output paths in HANDOFF              | done    |
-
-| M0-13 | Vendor the Matt Pocock engineering skills and configure `docs/agents/` for this repo | — | 20 skills under `.agents/skills/`; tracker, triage labels and ADR path in `docs/agents/` match reality | done |
+| ID    | Task                                                                                                | Deps      | Acceptance / evidence                                                                                | Status  |
+| ----- | --------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------- | ------- |
+| M0-01 | Write AGENTS, roadmap, architecture, format, engine, scripting, testing, release, security and ADRs | —         | Docs exist, links resolve, `markdownlint` passes                                                     | done    |
+| M0-02 | Restructure into `cmd/apigo`, `cmd/apigo-cli`, `internal/version`; set `mygo.json` `main`           | —         | `make run`, `go run ./cmd/apigo-cli version`, `make test` pass                                       | done    |
+| M0-03 | gofumpt, Prettier, markdownlint, Husky hooks, commitlint, Makefile, verify script                   | —         | `make verify` passes; a bad commit message is rejected                                               | done    |
+| M0-04 | Initialize Git on `main`, add `.gitignore`/`.gitattributes`/`.editorconfig`, first commit           | M0-01..03 | `git log` shows the foundation commit; `git status` clean                                            | done    |
+| M0-05 | CI workflow: docs, lint, tests on macOS/Ubuntu/Windows, packaging build                             | M0-02     | Workflow is valid YAML; all jobs pass on the first push                                              | partial |
+| M0-06 | Release workflow: tag/version check, build matrix, draft release, checksums                         | M0-05     | A `v0.1.0` dry run uploads dmg/exe/deb/tar.gz to a draft                                             | partial |
+| M0-07 | CLI skeleton: `version`, `help`, exit codes, tests                                                  | M0-02     | `go test ./cmd/apigo-cli` passes; `--help` exits 0, unknown exits 2                                  | done    |
+| M0-08 | Add PR template, issue templates and Dependabot config                                              | M0-04     | Files present; Dependabot config parses                                                              | done    |
+| M0-09 | Add third-party notices for Bruno fixtures and research                                             | M0-01     | Notice lists Bruno 2.0.0, MIT, commit `dd0281d`                                                      | done    |
+| M0-10 | Choose project license and final app identifier                                                     | —         | Owner decision recorded in ADR; `package.json`/`mygo.json` updated                                   | blocked |
+| M0-11 | Create GitHub repository, push `main`, set secrets, enable branch protection                        | M0-10     | `Fim98/apigo` exists; `main` pushed as `d99ef9c`. Left: branch protection, Actions secrets, CI green | partial |
+| M0-12 | Validate a real `mygo build` locally and record artifact names                                      | M0-02     | `go tool mygo build` succeeds; output paths in HANDOFF                                               | done    |
+| M0-13 | Vendor the Matt Pocock engineering skills and configure `docs/agents/` for this repo                | —         | 20 skills under `.agents/skills/`; `docs/agents/` matches reality; pushed as `d99ef9c`               | done    |
 
 ## M1 — Language & collection store
 

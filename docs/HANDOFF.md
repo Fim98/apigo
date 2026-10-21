@@ -6,13 +6,14 @@ it at the end of every session, then verify with `make verify`.
 ## Snapshot
 
 - Date: 2026-10-21 (Asia/Shanghai)
-- Branch: `main`
+- Branch: `main`, tracking `origin` (`git@github.com:Fim98/apigo.git`)
 - Commits: `git log --oneline`; foundation `f199eb4`, then OpenCollection notes
-  and product research corrections (latest docs commit).
+  and product research corrections, then `d99ef9c` (M0-13 agent skills).
 - Version: `0.1.0` (foundation)
-- Milestone: **M0 — Foundation** files complete; CI/release validation needs a remote
+- Milestone: **M0 — Foundation** files complete; remote exists, CI unverified
 - Next milestone: **M1 — Language & collection store**
-- Working tree: uncommitted M0-13 (agent skills, `docs/agents/`, `GLOSSARY.md`)
+- Working tree: untracked `internal/{bru,collection}` and `cmd/brucheck` WIP
+  (does not compile); everything else committed and pushed
 
 ## What is done
 
@@ -40,8 +41,9 @@ it at the end of every session, then verify with `make verify`.
 
 - [x] 20 engineering skills vendored from `mattpocock/skills` 1.3.1 (commit
       `5beb35b`) under `.agents/skills/`; notice in `THIRD_PARTY_NOTICES.md`.
-- [x] `docs/agents/issue-tracker.md` — GitHub Issues, **not live** until M0-11;
-      records the `Backlog:` id rule that keeps issues and `BACKLOG.md` aligned.
+- [x] `docs/agents/issue-tracker.md` — GitHub Issues in `Fim98/apigo`, live
+      since the remote was pushed; records the `Backlog:` id rule that keeps
+      issues and `BACKLOG.md` aligned.
 - [x] `docs/agents/triage-labels.md` — five canonical roles mapped to backlog
       statuses (`blocked`, `todo`, `in_progress`, `dropped`).
 - [x] `docs/agents/domain.md` — single-context, ADRs at `docs/decisions/`
@@ -52,6 +54,8 @@ it at the end of every session, then verify with `make verify`.
       `docs/agents/`.
 - [x] Local wiring: `.workbuddy/skills/` symlinks to `.agents/skills/`
       (gitignored); `.scratch/` and `.workbuddy/` ignored.
+- [x] Remote `git@github.com:Fim98/apigo.git` added, `main` pushed as `d99ef9c`,
+      tracking set; the five triage labels created on the remote.
 
 ### Code and tooling
 
@@ -110,6 +114,8 @@ tables contain code spans with literal pipes.
 | `npx prettier --check "**/*.{md,yml,yaml,json,jsonc}"` | pass — "All matched files use Prettier code style"                                                                                                                |
 | `npx markdownlint-cli2 "**/*.md" …`                    | pass — 32 files, 0 issues (`.agents/skills`, `.workbuddy`, `.scratch` excluded)                                                                                   |
 | `make verify`                                          | **fail**, pre-existing: `internal/collection` does not compile (`undefined: Environment`, `undefined: LoadEnvironments`); untracked WIP, unrelated to this change |
+| `git push -u origin main`                              | pass — pre-push `verify.sh` green once the untracked WIP was set aside; branch tracks `origin/main`                                                               |
+| GitHub Actions                                         | triggered by `d99ef9c`; first run not yet observed                                                                                                                |
 
 ## Next three tasks
 
@@ -130,18 +136,19 @@ tables contain code spans with literal pipes.
 
 ## Blockers and open questions
 
-| Item                                             | Status      | Owner decision needed                                                                             |
-| ------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------- |
-| Project license                                  | Blocked     | Which license? `package.json` currently says `UNLICENSED`; no `LICENSE` file.                     |
-| Bundle identifier / app name                     | Blocked     | Replace `com.example.apigo` before 0.2.0 or first public release.                                 |
-| GitHub repository                                | Blocked     | Create `OWNER/apigo`, push `main`, set branch protection; update badges/URLs.                     |
-| Issue tracker activation                         | Blocked     | Same gate as M0-11: no remote, so `gh issue create` fails; skills fall back to `BACKLOG.md` rows. |
-| `internal/{bru,collection}` WIP does not compile | Blocked     | Untracked work from an earlier session; `make verify` stays red until it builds. Not M0-13.       |
-| Signing/notarization secrets                     | Later (M12) | Apple Developer ID, Windows certificate, update key.                                              |
-| AI features                                      | M10         | Include provider integrations? Which providers? Default is off.                                   |
-| Git panel scope                                  | M9          | Bruno 2.0 does not ship one; add in M9 or defer after 1.0.                                        |
-| i18n scope                                       | M11         | Bruno 2.0 is English-only; Chinese/other locales are an apigo extension.                          |
-| External secret providers                        | M10+        | `vars:externalsecrets` is parsed but has no editor/resolver in Bruno OSS.                         |
+| Item                                             | Status      | Owner decision needed                                                                                                            |
+| ------------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Project license                                  | Blocked     | Which license? `package.json` currently says `UNLICENSED`; no `LICENSE` file.                                                    |
+| Bundle identifier / app name                     | Blocked     | Replace `com.example.apigo` before 0.2.0 or first public release.                                                                |
+| GitHub repository                                | Partial     | `Fim98/apigo` created (public, empty until `d99ef9c`); `main` pushed. Left: branch protection, badges/URLs, first green CI.      |
+| Issue tracker activation                         | Live        | `Fim98/apigo` Issues + five triage labels created 2026-10-21.                                                                    |
+| Project license (public repo)                    | Blocked     | The repo is now **public** with no `LICENSE` file; default is all rights reserved. Decide before the first outside contribution. |
+| `internal/{bru,collection}` WIP does not compile | Blocked     | Untracked work from an earlier session; `make verify` stays red until it builds. Not M0-13.                                      |
+| Signing/notarization secrets                     | Later (M12) | Apple Developer ID, Windows certificate, update key.                                                                             |
+| AI features                                      | M10         | Include provider integrations? Which providers? Default is off.                                                                  |
+| Git panel scope                                  | M9          | Bruno 2.0 does not ship one; add in M9 or defer after 1.0.                                                                       |
+| i18n scope                                       | M11         | Bruno 2.0 is English-only; Chinese/other locales are an apigo extension.                                                         |
+| External secret providers                        | M10+        | `vars:externalsecrets` is parsed but has no editor/resolver in Bruno OSS.                                                        |
 
 ## Important implementation notes (from the research)
 

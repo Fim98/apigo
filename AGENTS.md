@@ -40,8 +40,8 @@ below; they do not replace it, and `docs/BACKLOG.md` stays the scope authority.
 
 ### Issue tracker
 
-GitHub Issues via the `gh` CLI — chosen, but not live until M0-11 creates the
-remote. See `docs/agents/issue-tracker.md`.
+GitHub Issues in `Fim98/apigo`, via the `gh` CLI. See
+`docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

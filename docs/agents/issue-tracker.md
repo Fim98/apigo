@@ -5,20 +5,13 @@ operations.
 
 ## Status in this repo
 
-**Chosen, not yet live.** The owner picked GitHub Issues on 2026-10-21. There is
-no `git remote` yet: creating `OWNER/apigo` is task **M0-11**, blocked on the
-licence decision **M0-10**.
+**Live since 2026-10-21.** The repository is `Fim98/apigo`, `origin` is
+`git@github.com:Fim98/apigo.git`, `main` tracks it, and the five triage labels
+exist on the remote. Use the tracker for real.
 
-Until that task lands:
-
-- `gh issue create` and friends fail. A skill that needs the tracker must stop
-  and tell the owner, then fall back to writing the same content into
-  [docs/BACKLOG.md](../BACKLOG.md) as a `todo` row with the next free
-  `M<number>-<nn>` id. Do not invent a second tracker under `.scratch/`.
-- Triage labels below are recorded here only; they are created on the remote by
-  `setup-matt-pocock-skills` or `/triage` once the remote exists.
-
-Once the remote exists, delete this section and nothing else changes.
+The only remnant of the pre-remote period: CI had not run before the first push,
+so the first green run is the baseline, not a guarantee. See
+[docs/HANDOFF.md](../HANDOFF.md).
 
 ## Relationship to `docs/BACKLOG.md`
 

@@ -21,7 +21,7 @@ corresponding label string from this table.
   acceptance criteria that a test can check; otherwise it is `ready-for-human`.
 - `divergent` and `done` are backlog outcomes, not triage states. Do not create
   labels for them.
-- These labels do not exist yet: there is no remote until M0-11. See
-  [issue-tracker.md](./issue-tracker.md).
+- These labels exist on `Fim98/apigo` (created 2026-10-21), with the role text as
+  their description. See [issue-tracker.md](./issue-tracker.md).
 
 Edit the "Label in our tracker" column if the tracker vocabulary ever changes.
