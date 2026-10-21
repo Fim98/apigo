@@ -13,7 +13,7 @@ it at the end of every session, then verify with `make verify`.
   (collection), `8f62487` (cli)
 - Version: `0.1.0` (foundation)
 - Milestone: **M1 — Language & collection store** — parser, model, loader, watcher,
-  CLI and the OpenCollection YAML reader done; dotenv and the YAML writer remain
+  CLI, OpenCollection reader and writer done; only dotenv (M1-08a) remains
 - Next milestone: finish M1, then **M2 — Core request engine**
 - Working tree: M1 docs for this session
 
@@ -85,6 +85,12 @@ it at the end of every session, then verify with `make verify`.
       skips `script`/`app` items with a warning instead of inventing an empty
       request. The parsed document stays on `Request.Source`/`Folder.Source`, so
       keys the model does not read are still reachable for the writer.
+- [x] OpenCollection YAML writer (M1-14): `MarshalYAMLRequest`/`Folder`/
+      `Collection`/`Environment` patch a clone of the source `yaml.Node` tree and
+      write canonical YAML (2-space indent, LF, version key first). Unknown data
+      survives at block level, inside list items, inside `auth` (OAuth2
+      `additional_params`) and in unknown action types. `apigo-cli fmt` now
+      formats `.yml` collections and refuses YAML outside one.
 - [x] Watcher (M1-09): recursive `fsnotify` watcher with a per-path debounce,
       create/update/remove events, `IsDir` preserved for removed directories,
       `TooLarge` for files above the 2.5 MiB cap, new subdirectories watched as
@@ -152,18 +158,16 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M1-14 — OpenCollection YAML writer.**
-   Re-read the file, patch the modelled nodes on the preserved `yaml.Node` tree,
-   and write canonical YAML (2-space indent, LF). Every vendored fixture must
-   round-trip, and an unknown key must survive an edit. This is what makes a YAML
-   collection editable instead of read-only.
-2. **M1-08a — dotenv.**
+1. **M1-08a — dotenv.**
    Read `<collection>/.env` into a `process.env` map (plain `.env` only; `.env.*`
-   is inert), keep it out of the normal variable scopes, and test precedence.
-3. **M1-12a — CLI format awareness.**
-   `apigo-cli inspect` already loads YAML collections through `collection.Load`;
-   add `fmt` support for `.yml` files (canonical YAML output) once M1-14 lands,
-   and cover the YAML path in the CLI tests.
+   is inert), keep it out of the normal variable scopes, and test precedence. This
+   is the last M1 task.
+2. **M2-01 — variable scopes.**
+   process, collection, folder, environment, request and runtime scopes with the
+   documented precedence; table tests against REQUEST_ENGINE.md §2.
+3. **M2-02 — interpolation.**
+   `{{var}}`, nested references (bounded), unresolved markers, escaping and
+   `process.env`, on top of the scopes from M2-01.
 
 ## Blockers and open questions
 
@@ -193,6 +197,16 @@ test covers the nine vendored files.
   may be a bare scalar (`auth: inherit`); scripts are `before-request`,
   `after-response`, `tests` and `grpc:*`; post-response variables are
   `set-variable` actions. Verified in docs/OPENCOLLECTION.md §8.
+- **YAML writing patches, it does not re-serialise.** `MarshalYAML*` clones the
+  source document and updates only what the model owns; list items merge by index
+  (so a vendor key inside a header survives while the list length is stable), and
+  auth scalars are patched in place so nested OAuth2 parameters stay. Examples are
+  rebuilt from their YAML fragments only when the count changed. Known losses are
+  listed in OPENCOLLECTION §6 (`timeout: inherit` → milliseconds, `docs.type`,
+  `selector.method`).
+- **`apigo-cli fmt` only touches OpenCollection YAML.** A `.yml` is formatted only
+  if it is `opencollection.yml` or sits under one; anything else is skipped in a
+  directory walk and rejected as an explicit argument.
 - **YAML unknown data** stays in the `yaml.Node` tree inside
   `internal/opencollection`, and each YAML request/folder keeps its
   `*opencollection.Document` on `Source`. The M1-14 writer patches that tree so
