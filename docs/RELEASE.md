@@ -8,7 +8,8 @@ credentials (M12).
 
 - Semantic Versioning: `MAJOR.MINOR.PATCH`.
 - Pre-1.0: one minor per milestone (`0.4.0` for M3), patch for fixes.
-- The version has one source of truth: `mygo.json` `version`.
+- The version has one source of truth: `mygo.json` `version`. `package.json`
+  `version` must match it (checked by `scripts/check-release.sh`).
 - `cmd/apigo-cli` gets its version at build time:
   `-ldflags "-X apigo/internal/version.Value=$(version)"`.
 - The desktop app reads `mygo.App.Version()` (MyGo links `mygo.json`).
