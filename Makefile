@@ -19,8 +19,8 @@ build: ## Package the app for this machine
 test: ## Unit tests without cgo
 	CGO_ENABLED=0 $(GO) test ./...
 
-test-race: ## Unit tests with the race detector
-	CGO_ENABLED=0 $(GO) test -race ./...
+test-race: ## Unit tests with the race detector (cgo required by -race)
+	CGO_ENABLED=1 $(GO) test -race ./...
 
 fmt: ## Format Go and documentation
 	$(GO) tool gofumpt -w .
