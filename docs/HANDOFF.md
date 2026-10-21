@@ -12,8 +12,8 @@ it at the end of every session, then verify with `make verify`.
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli)
 - Version: `0.1.0` (foundation)
-- Milestone: **M1 — Language & collection store** — parser, model, loader and CLI
-  done; watcher, dotenv and OpenCollection YAML remain
+- Milestone: **M1 — Language & collection store** — parser, model, loader, watcher
+  and CLI done; dotenv and OpenCollection YAML remain
 - Next milestone: finish M1, then **M2 — Core request engine**
 - Working tree: M1 docs for this session
 
@@ -77,6 +77,11 @@ it at the end of every session, then verify with `make verify`.
       cycle detection, external secret blocks preserved verbatim.
 - [x] `apigo-cli fmt` / `inspect` (M1-12): atomic rewrites, `--check` exit 1,
       `--stdout`, recursive directory walk; tree and `--json` output.
+- [x] Watcher (M1-09): recursive `fsnotify` watcher with a per-path debounce,
+      create/update/remove events, `IsDir` preserved for removed directories,
+      `TooLarge` for files above the 2.5 MiB cap, new subdirectories watched as
+      they appear, idempotent `Close` and `Run(ctx)`; ADR-0009 records the
+      dependency choice.
 
 ### Code and tooling
 
@@ -139,19 +144,17 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M1-09 — file watcher.**
-   Watch a collection root with `fsnotify`, debounce (~150 ms), coalesce events
-   per path, emit create/update/delete, skip hidden directories and
-   `node_modules`, and stop cleanly on context cancellation. Reload only the
-   changed request; return `collection.ErrTooLarge` instead of parsing a file
-   above 2.5 MiB.
-2. **M1-13 — OpenCollection YAML reader.**
+1. **M1-13 — OpenCollection YAML reader.**
    Parse `opencollection.yml`, `collection.yml`, `folder.yml` and item `.yml` into
    the same `Request`/`Folder` model, preserving unknown fields. Record the YAML
-   dependency decision in an ADR first.
-3. **M1-08a — dotenv.**
+   dependency decision in an ADR first (`gopkg.in/yaml.v3`, cgo-free); the loader
+   must pick YAML when `opencollection.yml` exists and `.bru` otherwise.
+2. **M1-08a — dotenv.**
    Read `<collection>/.env` into a `process.env` map (plain `.env` only; `.env.*`
    is inert), keep it out of the normal variable scopes, and test precedence.
+3. **M1-14 — OpenCollection YAML writer.**
+   Canonical YAML output that round-trips the reader's fixtures and opens in
+   Bruno 2.0.0.
 
 ## Blockers and open questions
 
@@ -202,8 +205,15 @@ test covers the nine vendored files.
   OpenCollection, Git repos and spec URLs.
 - **Strict schemas in Bruno** (`noUnknown(true)`) reject unknown fields. apigo
   preserves unknown blocks/keys instead; this is a deliberate divergence.
-- **Watcher cap: 2.5 MiB** per request file (`collection.MaxFileSize`). Larger
-  files require an explicit open action.
+- **Watcher cap: 2.5 MiB** per request file (`collection.MaxFileSize`). The
+  watcher sets `Event.TooLarge` from the stat it already does, so the consumer
+  never parses an oversized file by accident.
+- **Watcher semantics.** The debounce (150 ms default) lives inside
+  `collection.Watcher`, per path; a burst collapses to one event, and a rename is
+  an update when the path still exists and a remove when it does not (editors
+  save by renaming over the target). Removed directories keep `IsDir`, and new
+  subdirectories are watched as soon as they appear. Events are also emitted for
+  `environments/*.bru`, which the loader reads outside the request tree.
 - **Cookies are global**, not per collection. Client certificates are global or
   collection-level; proxy is global or collection-level (no per-request proxy in
   Bruno).
