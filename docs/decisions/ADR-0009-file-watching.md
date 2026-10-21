@@ -29,12 +29,14 @@ three target OSes.
 Use `fsnotify` v1.9.0 for file watching, confined to
 `internal/collection/watcher.go`. The public surface is apigo's own:
 
-- `collection.NewWatcher(root, Options)` — options carry the debounce window and
-  the ignore rules from the loader.
-- `(*Watcher).Events() <-chan Event` — `Event{Path, RelPath, Op}` where `Op` is
-  `OpCreate`, `OpUpdate` or `OpRemove`, already debounced and coalesced.
-- `(*Watcher).Errors() <-chan error` — watcher-level failures (inotify limit,
-  directory removed).
+- `collection.NewWatcher(ctx, root, WatcherOptions)` — the context bounds the
+  initial directory scan; options carry the debounce window and the ignore list.
+- `(*Watcher).Events() <-chan Event` — each `Event` carries `Path`, `RelPath`,
+  `Op`, `IsDir` and `TooLarge`. `Op` is `OpCreate`, `OpUpdate` or `OpRemove`,
+  already debounced and coalesced. `TooLarge` reports a file above `MaxFileSize`,
+  so the consumer does not have to stat it again.
+- `(*Watcher).Errors() <-chan error` — watcher-level failures, for example a
+  directory that could not be watched (inotify limit).
 - `(*Watcher).Run(ctx)` and `(*Watcher).Close()` — both stop cleanly and close
   the channels exactly once.
 
@@ -58,7 +60,10 @@ Negative:
 - fsnotify does not watch new subdirectories automatically; the watcher adds
   recursive watches when a directory is created, and drops them on removal.
 - Some editors write via rename, producing `Chmod`/`Rename` noise; the debounce
-  layer coalesces bursts and maps rename-into-place to `OpUpdate`.
+  layer coalesces bursts and maps a rename to `OpUpdate` when the path still
+  exists, `OpRemove` when it does not.
+- `environments/*.bru` is watched too: the loader reads that directory outside
+  the request tree, but the app still has to react when an environment changes.
 
 Mitigations:
 
@@ -66,5 +71,6 @@ Mitigations:
   the build before release.
 - The watcher is tested against a temp tree, not against OS timing: the debounce
   window is configurable and set low in tests.
-- Oversized files stay out of the watcher's parse path: the consumer checks
-  `collection.MaxFileSize` and surfaces `ErrTooLarge` instead.
+- Oversized files stay out of the watcher's parse path: `Event.TooLarge` is set
+  from the stat the watcher already performs, and the consumer surfaces
+  `ErrTooLarge` instead of parsing.

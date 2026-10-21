@@ -209,10 +209,10 @@ and cancellation are explicit. It emits progress events to the UI and a final
   A result carries the tab's generation number, and stale results are dropped.
 - App state is mutated only on the main thread (through `Window.Update`). Worker
   results are immutable snapshots.
-- File watching delivers events on a goroutine; the app debounces, re-reads on
+- File watching delivers debounced events on a goroutine; the app re-reads on
   the main thread and invalidates only the affected subtree. Files above 2.5 MiB
-  are not parsed automatically (Bruno's watcher cap); the UI offers to open them
-  explicitly.
+  are flagged on the event and not parsed automatically (Bruno's watcher cap);
+  the UI offers to open them explicitly.
 - Never capture `*ui.Context`, elements or widget parts in a goroutine or app
   state. Capture `c.Services()` only for persistent callbacks.
 - Scripts run with `goja.Interrupt` on timeout; the goroutine is joined before
