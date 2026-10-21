@@ -68,18 +68,19 @@ make verify
 
 At the time of writing:
 
-| Command                          | Result                                                                           |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| `CGO_ENABLED=0 go test ./...`    | pass (`cmd/apigo`, `cmd/apigo-cli`, `internal/version`)                          |
-| `go vet ./...`                   | pass                                                                             |
-| `go tool mygo vet .`             | pass                                                                             |
-| `go run ./cmd/apigo-cli version` | `apigo dev`                                                                      |
-| `npm install`                    | pass (161 packages; Husky installed after `git init`)                            |
-| `make test-race`                 | pass (`cmd/apigo`, `cmd/apigo-cli`)                                              |
-| `make verify`                    | pass (gofumpt, vet, mygo vet, tests, cross-build, Prettier, markdownlint)        |
-| `go tool mygo build`             | pass — `build/darwin-arm64/apigo.app` (9.0 MB), `apigo 0.1.0 arm64.dmg` (3.0 MB) |
-| GitHub Actions                   | not run (no remote yet)                                                          |
-| Tag dry-run                      | not run (no remote yet)                                                          |
+| Command                                    | Result                                                                             |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `CGO_ENABLED=0 go test ./...`              | pass (`cmd/apigo`, `cmd/apigo-cli`, `internal/version`)                            |
+| `go vet ./...`                             | pass                                                                               |
+| `go tool mygo vet .`                       | pass                                                                               |
+| `go run ./cmd/apigo-cli version`           | `apigo dev`                                                                        |
+| `npm install`                              | pass (161 packages; Husky installed after `git init`)                              |
+| `make test-race`                           | pass (`cmd/apigo`, `cmd/apigo-cli`)                                                |
+| `make verify`                              | pass (gofumpt, vet, mygo vet, tests, cross-build, Prettier, markdownlint)          |
+| `go tool mygo build`                       | pass — `build/darwin-arm64/apigo.app` (9.0 MB), `apigo 0.1.0 arm64.dmg` (3.0 MB)   |
+| `go tool mygo build -platform linux/amd64` | pass — `apigo_0.1.0_amd64.deb` (4.0 MB), `apigo-0.1.0-linux-amd64.tar.gz` (4.0 MB) |
+| GitHub Actions                             | not run (no remote yet)                                                            |
+| Tag dry-run                                | not run (no remote yet)                                                            |
 
 After adding `docs/research/bruno-product-inventory.md`, run `make fmt` again;
 Prettier will reformat it. markdownlint excludes `docs/research/**` because the
