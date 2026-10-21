@@ -20,25 +20,25 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 
 ## A. Collection and format
 
-| ID  | Capability                                                 | Bruno 2.0.0                            | apigo design                           | Phase | Status    |
-| --- | ---------------------------------------------------------- | -------------------------------------- | -------------------------------------- | ----- | --------- |
-| A01 | Open a `.bru` collection directory                         | `bruno.json` + `.bru` tree             | Format detection + loader              | M1    | todo      |
-| A02 | Read/preserve `bruno.json` config                          | proxy, scripts, certs, presets, ignore | Typed config + raw unknown fields      | M1    | todo      |
-| A03 | Nested folders, `folder.bru`, folder metadata              | Headers/auth/vars/scripts/tests/docs   | Same model, recursive                  | M1    | todo      |
-| A04 | Ordering by name/`seq`, tags, disabled items               | `seq`, `tags`, `~` prefix              | Same; stable sort                      | M1    | todo      |
-| A05 | Environments, `extends`, secret names, color, typed vars   | `.bru` env grammar                     | Same; keychain for values              | M1    | todo      |
-| A06 | `.env` / `process.env`                                     | dotenv over OS env                     | Same, separate namespace               | M1    | todo      |
-| A07 | OpenCollection YAML (read)                                 | `opencollection.yml` + item YAML       | `internal/opencollection` reader       | M1    | todo      |
-| A08 | OpenCollection YAML (write)                                | Converter + filestore                  | Writer + `.bru` conversion             | M8    | todo      |
-| A09 | Unknown block/key preservation, stable output              | Parser/printers                        | AST spans + `Extra`, canonical printer | M1    | todo      |
-| A10 | Create/rename/duplicate/delete collection, folder, request | Sidebar CRUD                           | Atomic file operations                 | M3    | todo      |
-| A11 | File watching / external edits                             | chokidar, conflict prompts             | Debounced watcher + reload             | M1    | todo      |
-| A12 | Request docs (Markdown)                                    | `docs {}`                              | Editor + preview                       | M3    | todo      |
-| A13 | Examples (request/response snapshots)                      | `example {}`                           | Model + UI                             | M1/M3 | todo      |
-| A14 | Request/folder/collection presets, ignore rules            | `bruno.json`                           | Same, editable                         | M3    | todo      |
-| A15 | TOML request format                                        | `bruno-toml` package                   | Import/export only, not native         | M8    | divergent |
-| A16 | Workspace global environments                              | `workspace.yml`                        | Read workspace envs                    | M6/M9 | todo      |
-| A17 | OpenCollection/YAML native editing                         | New default format                     | Same UI over both formats              | M8    | todo      |
+| ID  | Capability                                                 | Bruno 2.0.0                                                                  | apigo design                           | Phase | Status    |
+| --- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------- | ----- | --------- |
+| A01 | Open a `.bru` collection directory                         | `bruno.json` + `.bru` tree                                                   | Format detection + loader              | M1    | todo      |
+| A02 | Read/preserve `bruno.json` config                          | proxy, scripts, certs, presets, ignore                                       | Typed config + raw unknown fields      | M1    | todo      |
+| A03 | Nested folders, `folder.bru`, folder metadata              | Headers/auth/vars/scripts/tests/docs                                         | Same model, recursive                  | M1    | todo      |
+| A04 | Ordering by name/`seq`, tags, disabled items               | `seq`, `tags`, `~` prefix                                                    | Same; stable sort                      | M1    | todo      |
+| A05 | Environments, `extends`, secret names, color, typed vars   | `.bru` env grammar                                                           | Same; keychain for values              | M1    | todo      |
+| A06 | `.env` / `process.env`                                     | dotenv over OS env                                                           | Same, separate namespace               | M1    | todo      |
+| A07 | OpenCollection YAML (read)                                 | `opencollection.yml` + `folder.yml` + item YAML; default for new collections | `internal/opencollection` reader       | M1    | todo      |
+| A08 | OpenCollection YAML (write)                                | Default format for new collections                                           | Writer, canonical YAML                 | M1    | todo      |
+| A09 | Unknown block/key preservation, stable output              | Parser/printers                                                              | AST spans + `Extra`, canonical printer | M1    | todo      |
+| A10 | Create/rename/duplicate/delete collection, folder, request | Sidebar CRUD                                                                 | Atomic file operations                 | M3    | todo      |
+| A11 | File watching / external edits                             | chokidar, conflict prompts                                                   | Debounced watcher + reload             | M1    | todo      |
+| A12 | Request docs (Markdown)                                    | `docs {}`                                                                    | Editor + preview                       | M3    | todo      |
+| A13 | Examples (request/response snapshots)                      | `example {}`                                                                 | Model + UI                             | M1/M3 | todo      |
+| A14 | Request/folder/collection presets, ignore rules            | `bruno.json`                                                                 | Same, editable                         | M3    | todo      |
+| A15 | TOML request format                                        | `bruno-toml` package                                                         | Import/export only, not native         | M8    | divergent |
+| A16 | Workspace global environments                              | `workspace.yml`                                                              | Read workspace envs                    | M6/M9 | todo      |
+| A17 | `.bru` ↔ OpenCollection migration                          | UI migrates bru→yml only, destructive                                        | Bidirectional conversion with backup   | M8    | extension |
 
 ## B. Request engine
 
@@ -96,7 +96,7 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 | C10 | async/await, promises, `setTimeout` sleep, nested tests             | Async IIFE + pending awaits | goja jobs + host sleep               | M5    | todo      |
 | C11 | Console capture, script errors, partial results, line mapping       | QuickJS runtime             | Same contract                        | M5    | todo      |
 | C12 | `test()` + chai `expect`/`assert` + custom matchers                 | chai 4 + chai-string        | JS shim + Go deep equality           | M5    | todo      |
-| C13 | Assert DSL (28 operators, typed RHS)                                | Assert runtime              | Parser + evaluator                   | M5    | todo      |
+| C13 | Assert DSL (28 operators, typed RHS, `res`/`$res` LHS)              | Assert runtime              | Parser + evaluator                   | M5    | todo      |
 | C14 | `vars:post-response` expressions                                    | Vars runtime                | Same, before post script             | M5    | todo      |
 | C15 | `jwt` global in tests                                               | jsonwebtoken                | HMAC shim                            | M5    | todo      |
 | C16 | Developer sandbox (`fs`, npm, Node builtins)                        | Node `vm`                   | Not supported; explicit error        | —     | dropped   |
@@ -163,9 +163,14 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 | F04 | OpenAPI 3.x / Swagger 2.0 import        | Converter           | Same, operation grouping                  | M8    | todo    |
 | F05 | Insomnia v4/v5 import                   | Converter           | Same                                      | M8    | todo    |
 | F06 | WSDL import                             | Converter           | Same                                      | M8    | todo    |
-| F07 | curl import                             | UI parser           | Same, flag coverage                       | M8    | todo    |
+| F07 | Curl paste into URL bar                 | UI parser           | Same (not a collection importer)          | M8    | todo    |
 | F08 | OpenCollection import/export            | Converter           | Same                                      | M8    | todo    |
 | F09 | `.bru` ↔ internal model (no conversion) | Native              | Native                                    | M1    | todo    |
+| F14 | Bruno ZIP / JSON collection import      | ZIP + JSON          | Same, with path validation                | M8    | todo    |
+| F15 | Git repository import (clone)           | Sidebar URL         | Same, delegates to git                    | M8    | todo    |
+| F16 | OpenAPI / WSDL / spec URL import        | URL fetch           | Same, with size/time limits               | M8    | todo    |
+| F17 | OpenAPI spec export                     | Collection → spec   | Same, lossy warnings                      | M8    | todo    |
+| F18 | Environment JSON export, HTML docs      | CLI/UI              | Same                                      | M8    | todo    |
 | F10 | Code generation (HTTPSnippet targets)   | `httpsnippet`       | Go generator, curl first + common targets | M8    | todo    |
 | F11 | Import/export UI wizard                 | Desktop             | Same                                      | M8    | todo    |
 | F12 | HAR import/export                       | absent              | not implemented                           | —     | dropped |
@@ -173,58 +178,68 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 
 ## G. Desktop UI and workflow
 
-| ID  | Capability                                               | Bruno 2.0.0      | apigo design                     | Phase | Status |
-| --- | -------------------------------------------------------- | ---------------- | -------------------------------- | ----- | ------ |
-| G01 | Main three-pane layout, resizable, persisted             | React layout     | MyGo split + state               | M3    | todo   |
-| G02 | Collection sidebar tree, methods, folders                | Sidebar          | `ui.Tree`/`ui.Outline`           | M3    | todo   |
-| G03 | Search/filter collections and requests                   | Sidebar search   | Model index + facet search       | M3/M9 | todo   |
-| G04 | Request tabs, dirty state, close prompt, restore         | Redux tabs       | Tab model + keys                 | M3    | todo   |
-| G05 | Method + URL bar, send/cancel                            | Request pane     | MyGo controls                    | M3    | todo   |
-| G06 | Params/headers key-value editors with enable/reorder     | Grid components  | Virtualized table editor         | M3    | todo   |
-| G07 | Body editors per mode with highlighting                  | CodeMirror       | `ui/editor`                      | M3    | todo   |
-| G08 | Auth tabs for all modes, inheritance indicator           | Auth components  | Generated form per mode          | M3/M4 | todo   |
-| G09 | Scripts/tests/docs editors                               | CodeMirror       | `ui/editor`, tabs                | M3/M5 | todo   |
-| G10 | Response pretty/raw/preview, JSON tree                   | Response pane    | Virtualized tree + editor        | M3    | todo   |
-| G11 | Response headers/cookies/timeline                        | Tables           | `ui.Table`                       | M3    | todo   |
-| G12 | Environment selector/editor, masked secrets              | Env UI           | Same                             | M3    | todo   |
-| G13 | Collection/folder settings (headers/auth/vars/scripts)   | Settings screens | Same                             | M3    | todo   |
-| G14 | Request settings (redirects/timeout/encode/omit)         | Settings pane    | Same                             | M3    | todo   |
-| G15 | Examples list/detail, set as request/response            | Example UI       | Same                             | M3    | todo   |
-| G16 | Docs editor/preview                                      | Markdown editor  | `ui/editor` + markdown           | M3    | todo   |
-| G17 | Runner screen (select, env, run, results)                | Runner UI        | MyGo screen                      | M6    | todo   |
-| G18 | Git panel (status/diff/commit/branch/push/pull)          | Git UI           | MyGo panel + diff viewer         | M9    | todo   |
-| G19 | Preferences (general/proxy/certs/cookies/history/themes) | Preferences      | Settings model + screens         | M3/M9 | todo   |
-| G20 | Light/dark/system themes, density                        | Themes           | MyGo theme + custom tokens       | M11   | todo   |
-| G21 | Full keyboard shortcut set + menu integration            | Hotkeys          | MyGo menus/handles               | M3    | todo   |
-| G22 | Drag/drop collections and files                          | DnD              | MyGo drag/drop                   | M3    | todo   |
-| G23 | Request history                                          | IndexedDB/SQLite | bbolt + screen                   | M9    | todo   |
-| G24 | Cookie manager UI                                        | Cookie UI        | Table + clear per domain         | M9    | todo   |
-| G25 | Proxy/cert UI with validation                            | Settings         | Same                             | M4/M9 | todo   |
-| G26 | Mock server UI                                           | Desktop          | Same                             | M10   | todo   |
-| G27 | Import/export UI                                         | Modals           | Same                             | M8    | todo   |
-| G28 | Code generation UI (language/library picker)             | Modal            | Same                             | M8    | todo   |
-| G29 | i18n (Bruno ships many languages)                        | i18next catalogs | MyGo i18n; English/Chinese first | M11   | todo   |
-| G30 | Accessibility (keyboard, labels, screen readers)         | Web a11y         | MyGo roles + tests               | M11   | todo   |
-| G31 | Recent collections, welcome/empty states                 | Home             | Same                             | M3    | todo   |
-| G32 | Save/copy/download response                              | Response actions | Same + stream to file            | M3    | todo   |
+| ID  | Capability                                                 | Bruno 2.0.0           | apigo design                       | Phase | Status    |
+| --- | ---------------------------------------------------------- | --------------------- | ---------------------------------- | ----- | --------- |
+| G01 | Main three-pane layout, resizable, persisted               | React layout          | MyGo split + state                 | M3    | todo      |
+| G02 | Collection sidebar tree, methods, folders                  | Sidebar               | `ui.Tree`/`ui.Outline`             | M3    | todo      |
+| G03 | Search/filter collections and requests                     | Sidebar search        | Model index + facet search         | M3/M9 | todo      |
+| G04 | Request tabs, dirty state, close prompt, restore           | Redux tabs            | Tab model + keys                   | M3    | todo      |
+| G05 | Method + URL bar, send/cancel                              | Request pane          | MyGo controls                      | M3    | todo      |
+| G06 | Params/headers key-value editors with enable/reorder       | Grid components       | Virtualized table editor           | M3    | todo      |
+| G07 | Body editors per mode with highlighting                    | CodeMirror            | `ui/editor`                        | M3    | todo      |
+| G08 | Auth tabs for all modes, inheritance indicator             | Auth components       | Generated form per mode            | M3/M4 | todo      |
+| G09 | Scripts/tests/docs editors                                 | CodeMirror            | `ui/editor`, tabs                  | M3/M5 | todo      |
+| G10 | Response pretty/raw/preview, JSON tree                     | Response pane         | Virtualized tree + editor          | M3    | todo      |
+| G11 | Response headers/cookies/timeline                          | Tables                | `ui.Table`                         | M3    | todo      |
+| G12 | Environment selector/editor, masked secrets                | Env UI                | Same                               | M3    | todo      |
+| G13 | Collection/folder settings (headers/auth/vars/scripts)     | Settings screens      | Same                               | M3    | todo      |
+| G14 | Request settings (redirects/timeout/encode/omit)           | Settings pane         | Same                               | M3    | todo      |
+| G15 | Examples list/detail, set as request/response              | Example UI            | Same                               | M3    | todo      |
+| G16 | Docs editor/preview                                        | Markdown editor       | `ui/editor` + markdown             | M3    | todo      |
+| G17 | Runner screen (select, env, run, results)                  | Runner UI             | MyGo screen                        | M6    | todo      |
+| G18 | Git panel (status/diff/commit/branch/push/pull)            | Git UI                | MyGo panel + diff viewer           | M9    | extension |
+| G19 | Preferences (general/proxy/certs/cookies/history/themes)   | Preferences           | Settings model + screens           | M3/M9 | todo      |
+| G20 | Light/dark/system themes, density                          | Themes                | MyGo theme + custom tokens         | M11   | todo      |
+| G21 | Full keyboard shortcut set + menu integration              | Hotkeys               | MyGo menus/handles                 | M3    | todo      |
+| G22 | Drag/drop collections and files                            | DnD                   | MyGo drag/drop                     | M3    | todo      |
+| G23 | Request history                                            | absent in Bruno 2.0.0 | bbolt + screen                     | M9    | extension |
+| G24 | Cookie manager UI                                          | Cookie UI             | Table + clear per domain           | M9    | todo      |
+| G25 | Proxy/cert UI with validation                              | Settings              | Same                               | M4/M9 | todo      |
+| G26 | Mock server UI                                             | Desktop               | Same                               | M10   | todo      |
+| G27 | Import/export UI                                           | Modals                | Same                               | M8    | todo      |
+| G28 | Code generation UI (language/library picker)               | Modal                 | Same                               | M8    | todo      |
+| G29 | i18n (English-only in Bruno 2.0.0)                         | `en.json` only        | MyGo i18n; English/Chinese first   | M11   | extension |
+| G30 | Accessibility (keyboard, labels, screen readers)           | Web a11y              | MyGo roles + tests                 | M11   | todo      |
+| G31 | Recent collections, welcome/empty states                   | Home                  | Same                               | M3    | todo      |
+| G33 | Response formats: JSON/HTML/XML/JS/Raw/Hex/Base64          | QueryResult           | Same                               | M3    | todo      |
+| G34 | Response previews: web/json/xml/text/image/PDF/audio/video | Response pane         | Same (webview for web/PDF)         | M3    | todo      |
+| G35 | GraphQL schema explorer + query builder                    | GraphQL pane          | MyGo tree + builder                | M7    | todo      |
+| G36 | Global search (`Cmd+K`)                                    | Modal                 | MyGo panel + fuzzy index           | M9    | todo      |
+| G37 | Bulk key/value editor                                      | BulkEditor            | Same                               | M3    | todo      |
+| G38 | Workspaces, global environments, scratch requests          | `workspace.yml`       | Same                               | M9    | todo      |
+| G39 | App items (`meta.type: app`, HTML/JS pane)                 | App preview           | WebView sandbox                    | M10   | todo      |
+| G40 | Per-collection security settings (sandbox mode)            | Security settings     | Safe mode only, documented         | M5    | divergent |
+| G41 | 22 themes + keybinding editor                              | Themes/Keybindings    | MyGo theme set + editable bindings | M11   | todo      |
+| G42 | AI chat/autocomplete                                       | AI sidebar            | Opt-in, off by default             | M10   | todo      |
+| G32 | Save/copy/download response                                | Response actions      | Same + stream to file              | M3    | todo      |
 
 ## H. Desktop integration
 
-| ID  | Capability                                     | Bruno 2.0.0              | apigo design              | Phase  | Status |
-| --- | ---------------------------------------------- | ------------------------ | ------------------------- | ------ | ------ |
-| H01 | Git status/diff/log                            | simple-git + UI          | `git` CLI + porcelain     | M9     | todo   |
-| H02 | Stage/unstage/commit                           | Git UI                   | Same, confirmation        | M9     | todo   |
-| H03 | Pull/push/fetch, branch create/switch          | Git UI                   | Same, credential helpers  | M9     | todo   |
-| H04 | Conflict resolution (ours/theirs/edit, abort)  | Git UI                   | Same + diff viewer        | M9     | todo   |
-| H05 | Secret storage in OS keychain                  | encrypted electron-store | MyGo secrets/keychain     | M9     | todo   |
-| H06 | Persistent cookies                             | cookie store             | bbolt jar                 | M9     | todo   |
-| H07 | Persistent history                             | SQLite/IndexedDB         | bbolt + pruned            | M9     | todo   |
-| H08 | Recent collections                             | electron-store           | JSON + menu               | M3     | todo   |
-| H09 | Native menus, app menu, context menus          | Electron menu            | MyGo menus                | M3     | todo   |
-| H10 | Single instance, deep links, file associations | Electron                 | MyGo APIs                 | M11    | todo   |
-| H11 | Notifications (run finished, update)           | Electron                 | MyGo notifications        | M6/M12 | todo   |
-| H12 | Auto-update with signed manifests              | Electron updater         | MyGo updater              | M12    | todo   |
-| H13 | App state persistence (tabs, panes, window)    | electron-store           | JSON state + window state | M3     | todo   |
+| ID  | Capability                                     | Bruno 2.0.0              | apigo design              | Phase  | Status    |
+| --- | ---------------------------------------------- | ------------------------ | ------------------------- | ------ | --------- |
+| H01 | Git status/diff/log                            | simple-git + UI          | `git` CLI + porcelain     | M9     | extension |
+| H02 | Stage/unstage/commit                           | Git UI                   | Same, confirmation        | M9     | extension |
+| H03 | Pull/push/fetch, branch create/switch          | Git UI                   | Same, credential helpers  | M9     | extension |
+| H04 | Conflict resolution (ours/theirs/edit, abort)  | Git UI                   | Same + diff viewer        | M9     | extension |
+| H05 | Secret storage in OS keychain                  | encrypted electron-store | MyGo secrets/keychain     | M9     | todo      |
+| H06 | Persistent cookies                             | cookie store             | bbolt jar                 | M9     | todo      |
+| H07 | Persistent history                             | SQLite/IndexedDB         | bbolt + pruned            | M9     | todo      |
+| H08 | Recent collections                             | electron-store           | JSON + menu               | M3     | todo      |
+| H09 | Native menus, app menu, context menus          | Electron menu            | MyGo menus                | M3     | todo      |
+| H10 | Single instance, deep links, file associations | Electron                 | MyGo APIs                 | M11    | todo      |
+| H11 | Notifications (run finished, update)           | Electron                 | MyGo notifications        | M6/M12 | todo      |
+| H12 | Auto-update with signed manifests              | Electron updater         | MyGo updater              | M12    | todo      |
+| H13 | App state persistence (tabs, panes, window)    | electron-store           | JSON state + window state | M3     | todo      |
 
 ## I. Release, quality, operations
 
@@ -245,18 +260,18 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 
 ## Summary
 
-| Area                | Rows    | Done  | Todo    | Divergent | Dropped/extension           |
-| ------------------- | ------- | ----- | ------- | --------- | --------------------------- |
-| A Collection/format | 17      | 0     | 16      | 1         | 0                           |
-| B Request engine    | 35      | 0     | 30      | 3         | 2 extensions                |
-| C Scripting/tests   | 20      | 0     | 18      | 1         | 1 dropped                   |
-| D Runner/CLI        | 22      | 0     | 18      | 0         | 3 dropped, 1 extension      |
-| E Protocols         | 16      | 0     | 13      | 0         | 2 dropped, 1 extension      |
-| F Import/export     | 13      | 0     | 12      | 0         | 1 dropped                   |
-| G UI                | 32      | 0     | 32      | 0         | 0                           |
-| H Desktop           | 13      | 0     | 13      | 0         | 0                           |
-| I Release/quality   | 12      | 3     | 9       | 0         | 0                           |
-| **Total**           | **180** | **3** | **161** | **5**     | **7 dropped, 4 extensions** |
+| Area                | Rows    | Done  | Todo    | Divergent | Extension | Dropped |
+| ------------------- | ------- | ----- | ------- | --------- | --------- | ------- |
+| A Collection/format | 17      | 0     | 15      | 1         | 1         | 0       |
+| B Request engine    | 35      | 0     | 30      | 3         | 2         | 0       |
+| C Scripting/tests   | 20      | 0     | 18      | 1         | 0         | 1       |
+| D Runner/CLI        | 22      | 0     | 18      | 0         | 1         | 3       |
+| E Protocols         | 16      | 0     | 13      | 0         | 1         | 2       |
+| F Import/export     | 18      | 0     | 17      | 0         | 0         | 1       |
+| G UI                | 42      | 0     | 38      | 1         | 3         | 0       |
+| H Desktop           | 13      | 0     | 9       | 0         | 4         | 0       |
+| I Release/quality   | 12      | 3     | 9       | 0         | 0         | 0       |
+| **Total**           | **195** | **3** | **167** | **6**     | **12**    | **7**   |
 
 The totals are a planning aid, not a score. A row moves to `done` only with a
 test and, for parity behavior, a conformance fixture. Update this table and the

@@ -30,9 +30,10 @@ Bruno".
 2. **No UI imports outside `internal/ui` and `cmd/apigo`.** The parser, engine,
    runner and CLI must be testable without a window. `cmd/apigo-cli` must never
    import `internal/ui`, `github.com/egoist/mygo/ui`, or `cmd/apigo`.
-3. **`.bru` compatibility is a contract.** Every parser/printer change needs
-   golden fixtures and a semantic round-trip test. Unknown blocks and fields
-   must survive a load/save cycle. Do not silently normalize away user data.
+3. **`.bru` and OpenCollection compatibility is a contract.** Every parser/printer
+   change needs golden fixtures and a semantic round-trip test. Unknown blocks
+   and fields must survive a load/save cycle. Do not silently normalize away user
+   data. New Bruno collections default to YAML; both formats are first-class.
 4. **No blocking I/O on the UI thread.** Use a goroutine + `context`, then
    publish with `Window.Update`. Never capture a `*ui.Context`, `ui.Element` or
    widget parts in app state or workers.
@@ -59,12 +60,13 @@ Bruno".
 ```text
 cmd/apigo ──► internal/ui ──► internal/app ──► internal/{collection,httpx,auth,script,runner,gitx,store}
 cmd/apigo-cli ──► internal/runner ──► internal/{collection,httpx,auth,script,assert}
-internal/collection ──► internal/bru
+internal/collection ──► internal/{bru,opencollection}
 internal/httpx ──► internal/{bru,collection,vars}
 internal/script ──► internal/{bru,collection,httpx}   (data types only)
 ```
 
-- `internal/bru` is a leaf: no app, UI, network or filesystem globals.
+- `internal/bru` and `internal/opencollection` are leaves: no app, UI, network or
+  filesystem globals. Both formats feed the same collection model.
 - `internal/app` owns services and orchestration; it must not import `ui`.
 - `internal/ui` is an adapter: read state, render, dispatch commands. Business
   logic belongs in `internal/app` or below.

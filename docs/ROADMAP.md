@@ -52,7 +52,7 @@ status (`divergent`), not a silent omission.
 | M6  | Runner & CLI                 | Collection/folder runs, tags, reporters, CLI parity                | 3        | 0.7.0   |
 | M7  | Protocols                    | GraphQL, WebSocket, SSE                                            | 3        | 0.8.0   |
 | M8  | Import/export & snippets     | Postman, OpenAPI, Insomnia, curl, HAR, code generation             | 3        | 0.9.0   |
-| M9  | Git, secrets, history        | Git panel, keychain, persistent history, search                    | 3        | 0.10.0  |
+| M9  | Secrets, history, Git (ext.) | Keychain, persistent history, search, optional Git panel           | 3        | 0.10.0  |
 | M10 | gRPC, mock server, advanced  | gRPC unary/streaming, mock server, optional AI                     | 4        | 0.11.0  |
 | M11 | Parity audit & polish        | i18n, themes, a11y, performance, conformance sweep                 | 4        | 0.12.0  |
 | M12 | Release engineering          | Signing, notarization, updates, package managers, 1.0              | 2        | 1.0.0   |
@@ -127,15 +127,18 @@ starter window; the CLI reports its version.
 - Canonical printer with stable block order and LF line endings.
 - Collection loader: discovery, ignore rules, `seq` ordering, nested folders,
   environments, `.env`, secret variable names. Format detection: `.bru` +
-  `bruno.json`, and read-only OpenCollection YAML (`opencollection.yml`).
+  `bruno.json`, and OpenCollection YAML (`opencollection.yml`, `folder.yml`,
+  `*.yml`), which is the default for new Bruno collections.
+- OpenCollection reader and writer, so the workbench edits both formats rather
+  than only importing YAML.
 - File watcher with debounce and targeted reload.
 - Fuzz tests and golden fixtures from Bruno 2.0.0.
 
-**Exit gate.** 100% of the curated `.bru` and OpenCollection fixture set parses;
-semantic
-round-trip is byte-stable after canonicalization; a file with an unknown block
-survives save; fuzz runs 10 minutes without a panic; loading a 5,000-request
-collection takes < 500 ms.
+**Exit gate.** 100% of the curated `.bru` and OpenCollection fixture set parses and
+round-trips in its native format; semantic round-trip is byte-stable after
+canonicalization; a file with an unknown block survives save (an intentional
+divergence from Bruno's strict schema); fuzz runs 10 minutes without a panic;
+loading a 5,000-request collection takes < 500 ms.
 
 **Demo.** `apigo-cli` gains `fmt`/`inspect` hidden commands to print a
 collection tree and re-serialize a file.
@@ -287,8 +290,10 @@ platforms; connection lifecycle is cancellation-safe; large logs are bounded.
 **Deliverables.**
 
 - Import: Postman v2.1 collection + environment, OpenAPI 3.x, Swagger 2.0,
-  Insomnia v4/v5, WSDL, curl command, Bruno collection, OpenCollection.
-- Export: Postman, OpenCollection YAML, Bruno `.bru`.
+  Insomnia v4/v5, WSDL, Bruno ZIP/JSON, OpenCollection, Git repository clone,
+  spec URL. Curl is a URL-bar paste, not a collection importer (matching Bruno).
+- Export: Postman, OpenCollection YAML, Bruno ZIP, environment JSON, standalone
+  HTML docs, OpenAPI spec.
 - Code generation uses the HTTPSnippet-compatible target set (curl first).
 - Code generation: curl, JavaScript fetch/axios, Python requests, Go, and the
   rest of Bruno's snippet set.
@@ -300,7 +305,9 @@ collections open in Bruno.
 
 ## M9 — Git, secrets, history
 
-**Goal.** Make the collection-in-a-repo workflow first-class.
+**Goal.** Make the collection-in-a-repo workflow first-class. **Note:** Bruno
+2.0.0 does not ship a Git panel (only clone/remote-connect); the Git panel and
+request history are apigo extensions, not parity requirements.
 
 **Deliverables.**
 
@@ -311,9 +318,10 @@ collections open in Bruno.
 - Repository init and `.gitignore` suggestions.
 - Secret variable storage in the OS keychain, with prompt-on-missing and
   masked UI.
+- Workspaces: `workspace.yml`, global environments, scratch requests.
 - Persistent request history and cookie storage (bbolt), search across
-  collections, recent/favorite collections.
-- Command palette for common actions.
+  collections, recent/favorite collections (history is an extension).
+- Command palette for common actions (extension).
 
 **Exit gate.** A real repository with a remote can be cloned, edited,
 committed and pushed from the app; secrets never appear in `git diff`; git
@@ -345,8 +353,8 @@ the collection runner; AI is off by default and clearly marked experimental.
 
 - Full capability matrix audit; every row `done`, `divergent` or `dropped` with
   an ADR.
-- i18n: English and Simplified Chinese first, then the languages the community
-  wants; MyGo catalogs.
+- i18n (extension; Bruno 2.0 is English-only): English and Simplified Chinese
+  first, then community languages; MyGo catalogs.
 - Themes/light/dark/system, typography, density.
 - Accessibility: keyboard-only flows, labels, focus order, screen reader
   spot-checks.
@@ -411,4 +419,6 @@ These block specific milestones, not M0/M1:
    signing).
 3. AI provider integrations: include, and which (M10).
 4. Code-signing and notarization credentials (M12).
-5. Whether to ship a Homebrew tap / package-manager ownership (M12).
+5. Git panel scope: Bruno does not ship one; apigo can add it in M9 or defer it
+   after 1.0.
+6. Whether to ship a Homebrew tap / package-manager ownership (M12).

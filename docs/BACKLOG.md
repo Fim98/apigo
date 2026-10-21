@@ -49,6 +49,7 @@ Rules:
 | M1-11 | Semantic round-trip + fuzz tests                                                                                | M1-06 | Parse→print→parse equality; `go test -fuzz` 10 min no crash                                 | todo   |
 | M1-12 | `apigo-cli fmt` and `inspect` (hidden until stable)                                                             | M1-07 | `fmt --check` exit codes; `inspect` prints a tree; CLI tests                                | todo   |
 | M1-13 | OpenCollection YAML reader (`opencollection.yml` + item files)                                                  | M1-05 | Bruno 2.0 YAML fixture opens read-only; unknown fields preserved                            | todo   |
+| M1-14 | OpenCollection YAML writer + canonical output                                                                   | M1-13 | Round-trip YAML fixtures; Bruno opens the result                                            | todo   |
 
 ## M2 — Core request engine
 
@@ -86,6 +87,8 @@ Rules:
 | M3-11 | Scripts/tests/docs tabs with editor (read-only execution arrives in M5)                  | M3-09        | Content saves; editor shortcuts work; tab state persists                  | todo   |
 | M3-12 | Response body viewer: pretty JSON tree, raw, preview (image/HTML text), copy/save        | M3-07, M2-10 | 10 MB JSON < 200 ms; collapsing large arrays; binary placeholder          | todo   |
 | M3-13 | Response headers, cookies and timeline tables                                            | M3-12        | Sort/copy/filter; timings displayed; empty states                         | todo   |
+| M3-17 | Response formats JSON/HTML/XML/JS/Raw/Hex/Base64 + previews                              | M3-12        | Toggle formats; image/PDF/audio/video preview; 10 MB cap                  | todo   |
+| M3-18 | Bulk key/value editor for params/headers/form                                            | M3-08        | Paste bulk, parse, preserve duplicates                                    | todo   |
 | M3-14 | Environment selector + variable viewer (masked secrets)                                  | M3-03, M2-01 | Switching env re-resolves; secrets never shown unmasked                   | todo   |
 | M3-15 | Save flow: dirty state, atomic write, watcher conflict prompt, external change banner    | M3-06, M1-09 | Save/undo/conflict tests; no partial files                                | todo   |
 | M3-16 | UI flow tests + performance budget check                                                 | M3-01..15    | Open→edit→send→save test; startup < 150 ms; no UI-thread I/O              | todo   |
@@ -148,32 +151,35 @@ Rules:
 
 ## M8 — Import/export & snippets
 
-| ID    | Task                                                            | Deps      | Acceptance / evidence                                 | Status |
-| ----- | --------------------------------------------------------------- | --------- | ----------------------------------------------------- | ------ |
-| M8-01 | Importer interface + collection writer                          | M1-07     | Fixture-driven; warnings for lossy fields             | todo   |
-| M8-02 | Postman v2.1 collection + environment import                    | M8-01     | Corpus round-trip; auth/body/scripts mapped or warned | todo   |
-| M8-03 | OpenAPI 3.x + Swagger 2.0 import                                | M8-01     | Petstore + edge cases; operation grouping             | todo   |
-| M8-04 | Insomnia v4, curl, HAR import                                   | M8-01     | Fixtures; curl flag parsing; HAR entries              | todo   |
-| M8-05 | Bruno export (and Postman export where feasible)                | M8-01     | Exported collection opens in Bruno/Postman            | todo   |
-| M8-06 | Code snippets: HTTPSnippet-compatible targets (curl first)      | M2        | Snapshot tests; secrets redacted                      | todo   |
-| M8-09 | OpenCollection YAML writer + `.bru` ↔ OpenCollection conversion | M1-13     | Round-trip both ways; Bruno opens the result          | todo   |
-| M8-07 | UI import/export wizard                                         | M8-02..06 | Pick file, preview, choose target, progress, errors   | todo   |
-| M8-08 | Import/export conformance corpus and docs                       | M8-02..07 | Matrix of supported fields; known losses documented   | todo   |
+| ID    | Task                                                                 | Deps      | Acceptance / evidence                                    | Status |
+| ----- | -------------------------------------------------------------------- | --------- | -------------------------------------------------------- | ------ |
+| M8-01 | Importer interface + collection writer                               | M1-07     | Fixture-driven; warnings for lossy fields                | todo   |
+| M8-02 | Postman v2.1 collection + environment import                         | M8-01     | Corpus round-trip; auth/body/scripts mapped or warned    | todo   |
+| M8-03 | OpenAPI 3.x + Swagger 2.0 import                                     | M8-01     | Petstore + edge cases; operation grouping                | todo   |
+| M8-04 | Insomnia v4, curl, HAR import                                        | M8-01     | Fixtures; curl flag parsing; HAR entries                 | todo   |
+| M8-05 | Bruno export (and Postman export where feasible)                     | M8-01     | Exported collection opens in Bruno/Postman               | todo   |
+| M8-09 | Bruno ZIP/JSON import, Git clone import, spec URL import             | M8-01     | Fixtures + path/size validation; clone uses git          | todo   |
+| M8-10 | OpenAPI spec export, environment JSON, HTML docs                     | M8-05     | Output opens in Bruno/Swagger; warnings for lossy fields | todo   |
+| M8-06 | Code snippets: HTTPSnippet-compatible targets (curl first)           | M2        | Snapshot tests; secrets redacted                         | todo   |
+| M8-11 | OpenCollection YAML conversion + `.bru` ↔ YAML migration with backup | M1-13     | Round-trip both ways; Bruno opens the result             | todo   |
+| M8-07 | UI import/export wizard                                              | M8-02..06 | Pick file, preview, choose target, progress, errors      | todo   |
+| M8-08 | Import/export conformance corpus and docs                            | M8-02..07 | Matrix of supported fields; known losses documented      | todo   |
 
 ## M9 — Git, secrets, history
 
-| ID    | Task                                                                   | Deps         | Acceptance / evidence                                        | Status |
-| ----- | ---------------------------------------------------------------------- | ------------ | ------------------------------------------------------------ | ------ |
-| M9-01 | Git CLI wrapper: detect repo, status, log, diff, branches              | M3-03        | Integration tests in temp repos; missing git handled         | todo   |
-| M9-02 | Git panel UI: changes, stage/unstage, commit, pull/push, branch switch | M9-01        | Real repo flow; cancellable; errors actionable               | todo   |
-| M9-03 | Diff viewer integration + conflict resolution                          | M9-02        | Ours/theirs/edit; merge abort; no data loss                  | todo   |
-| M9-04 | Secret store in OS keychain + prompt/mask flows                        | M1-08        | Keychain tests (platform-skipped where needed); no plaintext | todo   |
-| M9-05 | Request history (bbolt) + history UI                                   | M2-10        | Persists, searches, prunes; redacted secrets                 | todo   |
-| M9-06 | Cookie persistence (bbolt jar)                                         | M2-09        | Survives restart; clear per collection                       | todo   |
-| M9-07 | Global search across collections                                       | M3-04        | Query by name/URL/method; performance on 10k requests        | todo   |
-| M9-08 | Command palette + recent/favorite collections                          | M3-02        | Keyboard-only; actions match menus                           | todo   |
-| M9-09 | Git ignore suggestions + secret-leak warning                           | M9-02, M9-04 | Warns before committing likely secrets                       | todo   |
-| M9-10 | Git/secret/history tests on all platforms                              | M9-01..09    | CI green; documented platform caveats                        | todo   |
+| ID    | Task                                                                               | Deps         | Acceptance / evidence                                        | Status |
+| ----- | ---------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------ | ------ |
+| M9-01 | Git CLI wrapper: detect repo, status, log, diff, branches (extension)              | M3-03        | Integration tests in temp repos; missing git handled         | todo   |
+| M9-02 | Git panel UI: changes, stage/unstage, commit, pull/push, branch switch (extension) | M9-01        | Real repo flow; cancellable; errors actionable               | todo   |
+| M9-03 | Diff viewer integration + conflict resolution (extension)                          | M9-02        | Ours/theirs/edit; merge abort; no data loss                  | todo   |
+| M9-04 | Secret store in OS keychain + prompt/mask flows                                    | M1-08        | Keychain tests (platform-skipped where needed); no plaintext | todo   |
+| M9-05 | Request history (bbolt) + history UI (extension; Bruno has none)                   | M2-10        | Persists, searches, prunes; redacted secrets                 | todo   |
+| M9-06 | Cookie persistence (bbolt jar)                                                     | M2-09        | Survives restart; clear per collection                       | todo   |
+| M9-07 | Global search across collections (Cmd+K)                                           | M3-04        | Query by name/URL/method; performance on 10k requests        | todo   |
+| M9-11 | Workspaces: `workspace.yml`, global environments, scratch requests                 | M1-07        | Workspace fixture opens; global envs resolve                 | todo   |
+| M9-08 | Command palette + recent/favorite collections                                      | M3-02        | Keyboard-only; actions match menus                           | todo   |
+| M9-09 | Git ignore suggestions + secret-leak warning                                       | M9-02, M9-04 | Warns before committing likely secrets                       | todo   |
+| M9-10 | Git/secret/history tests on all platforms                                          | M9-01..09    | CI green; documented platform caveats                        | todo   |
 
 ## M10 — gRPC, mock server, advanced
 
@@ -188,16 +194,16 @@ Rules:
 
 ## M11 — Parity audit & polish
 
-| ID     | Task                                                                | Deps    | Acceptance / evidence                                           | Status |
-| ------ | ------------------------------------------------------------------- | ------- | --------------------------------------------------------------- | ------ |
-| M11-01 | Capability matrix audit, row by row                                 | all     | Every row `done`/`divergent`/`dropped` with evidence            | todo   |
-| M11-02 | i18n infrastructure + English/Chinese catalogs                      | M3      | Language switch; catalog check passes; no hard-coded UI strings | todo   |
-| M11-03 | Themes, density, typography, system appearance                      | M3      | Light/dark/system; persisted                                    | todo   |
-| M11-04 | Accessibility pass (labels, focus, keyboard-only, screen reader)    | M3      | Checklist; no keyboard traps; roles announced                   | todo   |
-| M11-05 | Performance pass: startup, collection load, response render, memory | all     | Budgets in ARCHITECTURE.md met with benchmarks                  | todo   |
-| M11-06 | Conformance sweep (parser, HTTP, script, runner, CLI, import)       | all     | Full suite green; fixtures pinned                               | todo   |
-| M11-07 | User guide + Bruno migration guide                                  | M3..M10 | Docs cover every P0 workflow                                    | todo   |
-| M11-08 | Beta bug bash + triage                                              | all     | No open P0 bugs; P1 decisions recorded                          | todo   |
+| ID     | Task                                                                              | Deps    | Acceptance / evidence                                           | Status |
+| ------ | --------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------- | ------ |
+| M11-01 | Capability matrix audit, row by row                                               | all     | Every row `done`/`divergent`/`dropped` with evidence            | todo   |
+| M11-02 | i18n infrastructure + English/Chinese catalogs (extension; Bruno is English-only) | M3      | Language switch; catalog check passes; no hard-coded UI strings | todo   |
+| M11-03 | Themes, density, typography, system appearance                                    | M3      | Light/dark/system; persisted                                    | todo   |
+| M11-04 | Accessibility pass (labels, focus, keyboard-only, screen reader)                  | M3      | Checklist; no keyboard traps; roles announced                   | todo   |
+| M11-05 | Performance pass: startup, collection load, response render, memory               | all     | Budgets in ARCHITECTURE.md met with benchmarks                  | todo   |
+| M11-06 | Conformance sweep (parser, HTTP, script, runner, CLI, import)                     | all     | Full suite green; fixtures pinned                               | todo   |
+| M11-07 | User guide + Bruno migration guide                                                | M3..M10 | Docs cover every P0 workflow                                    | todo   |
+| M11-08 | Beta bug bash + triage                                                            | all     | No open P0 bugs; P1 decisions recorded                          | todo   |
 
 ## M12 — Release engineering
 

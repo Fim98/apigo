@@ -3,18 +3,21 @@
 Status: **provisional**. Bruno 2.0 ships two collection formats:
 
 - `.bru` + `bruno.json` (the format described in [BRU_FORMAT.md](BRU_FORMAT.md)).
-- OpenCollection YAML (`opencollection.yml` + item `.yml` files), used by newer
-  collections and by `bru import` by default.
+- OpenCollection YAML (`opencollection.yml` + `folder.yml` + item `.yml` files),
+  the default for new collections in Bruno 2.x.
 
-apigo must open both. M1-13 implements a read-only OpenCollection loader; M8-09
-adds writing and conversion. This document records what is known from the Bruno
+apigo must edit both. M1-13 implements the reader, M1-14 the writer; M8 adds
+bidirectional migration. This document records what is known from the Bruno
 2.0.0 source; it is verified against fixtures in M1-13 before implementation.
 
 ## 1. Format detection
 
 A directory is an OpenCollection when it contains `opencollection.yml` (or
 `opencollection.yaml`). Otherwise, `bruno.json` + `.bru` files mean the classic
-format. A directory with both is invalid; report it and let the user choose.
+format. When both config files exist, **OpenCollection wins** (Bruno behavior);
+show a warning and let the user choose, but default to YAML. New collections in
+Bruno 2.x default to YAML (`DEFAULT_COLLECTION_FORMAT = "yml"`), so both formats
+must be first-class.
 
 Do not detect by file extension alone: item files are `.yml`, but not every
 `.yml` is a request.
@@ -22,11 +25,36 @@ Do not detect by file extension alone: item files are `.yml`, but not every
 ## 2. Collection file
 
 ```yaml
-opencollection: 1.0.0
+opencollection: '1.0.0'
 
 info:
   name: my-collection
-  version: 1.0.0
+  version: '2.5'
+
+request: # collection-level request defaults
+  headers:
+    - name: content-type
+      value: application/json
+  auth:
+    type: basic
+    username: john
+    password: '{{password}}'
+  variables:
+    - name: baseUrl
+      value: https://api.example.com
+  scripts:
+    - type: pre-request
+      code: |-
+        console.log('collection pre');
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector: { expression: res.body.token, method: jsonq }
+      variable: { name: token, scope: runtime }
+
+docs:
+  content: Shared defaults
+  type: text/markdown
 
 config:
   proxy:
@@ -173,14 +201,15 @@ The printer for each format is separate.
 
 ## 7. Open questions for M1-13
 
-1. Which format does Bruno 2.0 create for a new collection by default? The CLI
-   `import` default suggests OpenCollection; the app may still default to
-   `.bru`. Verify in the UI.
-2. Exact `body`, `auth`, `assertions`, `actions` and `scripts` YAML shapes.
+1. ~~Which format does Bruno 2.0 create by default?~~ **Answered:** filestore
+   defaults to `yml`; existing `.bru` collections keep their format. Support both.
+2. Exact `body`, `auth`, `assertions`, `actions` and `scripts` YAML shapes (use
+   `packages/bruno-filestore/src/formats/yml/items/*` and its specs).
 3. How `extensions.bruno` interacts with top-level `config` when both exist.
-4. Environment `extends` syntax and secret representation.
-5. Whether item files can be nested arbitrarily or folder file names are fixed
-   (`folder.yml`).
+4. Environment `extends` syntax and secret representation (`name` + `secret: true`,
+   no value on disk).
+5. Folder file name is `folder.yml`; collection root settings are `collection.yml`;
+   verify nested naming and the `mock` block.
 
 Answer these from fixtures in
 `packages/bruno-filestore/src/formats/yml/**/*.spec.ts` and record the results

@@ -60,7 +60,8 @@ Lowest to highest:
 Important details:
 
 - `process.env` is a separate namespace: `{{process.env.FOO}}` resolves from the
-  OS environment overlaid with the collection `.env`.
+  OS environment overlaid with the collection `.env` (and workspace `.env` in the
+  desktop). Only plain `.env` is loaded; `.env.*` files are inert in Bruno.
 - Environment secrets win over non-secret variables of the same name when
   `extends` is resolved.
 - A whole-string reference (`"{{count}}"`) returns the referenced value with its
@@ -176,8 +177,9 @@ OAuth2 details:
 ### 7.1 Assertion DSL
 
 Rows are `lhs: <operator> <operand>`; default operator is `eq`. The left side is
-evaluated against the response context; the right side is interpolated and
-evaluated with literal typing.
+evaluated against the response context (`res.status` and the legacy `$res.status`
+spelling both work); the right side is interpolated and evaluated with literal
+typing.
 
 Operators: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `notIn`, `contains`,
 `notContains`, `length`, `matches`, `notMatches`, `startsWith`, `endsWith`,
@@ -228,9 +230,10 @@ parsed body (JSON object when the content type is JSON and parsing is enabled);
 
 ## 9. Cookies
 
-- One jar per collection, shared by requests, scripts and the cookie UI.
-- Desktop persists the jar (encrypted at rest where possible); CLI keeps it in
-  memory and clears it at exit unless a future flag says otherwise.
+- One global jar, shared by requests, scripts and the cookie UI (matching
+  Bruno). Desktop persists it; CLI keeps it in memory and clears it at exit.
+- Clearing a domain affects every collection, as it does in Bruno. A future
+  per-collection override would be an extension.
 - `settings.shouldSendCookies` / `shouldStoreCookies` (desktop preferences) are
   honored; the CLI has `--disable-cookies`.
 - An explicit `Cookie` header is merged with the jar; jar values win on name
@@ -243,13 +246,16 @@ parsed body (JSON object when the content type is JSON and parsing is enabled);
 - TLS verification is on by default. `--insecure` and the per-request setting
   are explicit. Custom CA bundles extend, never replace, the system roots unless
   `--ignore-truststore` is set.
-- Client certificates: collection/global cert list, matched by domain glob;
-  PEM (cert+key) and PKCS#12 with passphrase. First match wins.
-- Proxy modes: off, manual HTTP/HTTPS, SOCKS4/SOCKS5, system, PAC. MyGo has no
-  system-proxy API, so "system" is implemented per OS (macOS `scutil --proxy`,
-  Windows registry/WinHTTP, Linux env + GNOME `gsettings`) and PAC is evaluated
-  with goja. Bypass lists split on comma/semicolon/whitespace, support domain
-  suffixes and `host:port`. Proxy auth is supported and redacted from logs.
+- Client certificates: collection/global cert list (no per-request certs in
+  Bruno), matched by domain glob; PEM (cert+key) and PKCS#12 with passphrase.
+  First match wins.
+- Proxy modes: off, manual HTTP/HTTPS, SOCKS4/SOCKS5, system, PAC. Bruno's proxy
+  is global (preferences) or collection-level, not per-request; apigo matches
+  that and adds a per-request override as an extension. MyGo has no system-proxy
+  API, so "system" is implemented per OS (macOS `scutil --proxy`, Windows
+  registry/WinHTTP, Linux env + GNOME `gsettings`) and PAC is evaluated with
+  goja. Bypass lists split on comma/semicolon/whitespace, support domain suffixes
+  and `host:port`. Proxy auth is supported and redacted from logs.
 - PAC evaluation uses goja to run `FindProxyForURL`; the result maps to the
   corresponding transport. System-proxy discovery is best-effort and never
   overrides an explicit request setting.

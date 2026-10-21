@@ -8,7 +8,15 @@ All notable changes to apigo are documented here. The format is based on
 
 ### Added
 
-- Nothing yet. The API client work starts with M1; see `docs/BACKLOG.md`.
+- Product-level research inventory of Bruno 2.0.0 (UI, collections, formats,
+  import/export, Git, persistence) and a provisional OpenCollection YAML spec.
+- Capability matrix corrections: dual-format collections, Git panel/history/i18n
+  as extensions, no curl/HAR importer, OpenCollection write in M1.
+
+### Changed
+
+- M1 now includes the OpenCollection writer, because new Bruno collections
+  default to YAML.
 
 ## [0.1.0] - 2026-10-21
 

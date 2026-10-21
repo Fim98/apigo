@@ -18,13 +18,15 @@ of truth.
 
 apigo targets **functional parity with Bruno 2.0.0 (MIT)**:
 
-- Opens existing Bruno collections, folders, environments and requests without
-  conversion, and writes files Bruno can open again.
+- Opens existing Bruno collections in both formats — `.bru` + `bruno.json`, and
+  OpenCollection YAML (`opencollection.yml`, `folder.yml`, `*.yml`, the default
+  for new Bruno collections) — and writes files Bruno can open again.
 - Sends the same HTTP requests, with the same auth, variables, scripts,
   assertions, tests and runner semantics.
 - Implements the same workflow: collections, environments, import/export, the
-  runner, the CLI, protocols (GraphQL, WebSocket, SSE, gRPC), Git integration,
-  history and secrets.
+  runner, the CLI, protocols (GraphQL, WebSocket, SSE, gRPC) and secrets.
+  Git panel, request history and non-English locales are apigo extensions: Bruno
+  2.0.0 does not ship them.
 - Divergences are explicit, tested and listed in the
   [capability matrix](docs/CAPABILITY_MATRIX.md); "pixel-identical UI" is not a
   goal. The interface is native, not a web page.
@@ -41,7 +43,7 @@ owner; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 | Desktop   | [MyGo](https://github.com/egoist/mygo) 0.6 native UI (`ui`, `ui/editor`, `ui/tree`, `ui/table`)          |
 | HTTP      | `net/http` with a per-request transport (HTTP/1.1 by default, HTTP/2 opt-in), proxy, TLS and `httptrace` |
 | Scripting | [goja](https://github.com/dop251/goja), sandboxed, with a compatibility layer for Bruno's JS API         |
-| Storage   | `.bru` files on disk; bbolt for history/cookies; OS keychain for secrets                                 |
+| Storage   | `.bru`/OpenCollection files; bbolt for history/cookies; OS keychain for secrets                          |
 | CLI       | `apigo-cli`, sharing the engine with the app; no UI imports                                              |
 | Release   | `go tool mygo build`, GitHub Actions, optional code signing/notarization                                 |
 
@@ -78,6 +80,7 @@ for the tag-driven GitHub Actions pipeline.
 cmd/apigo/            native desktop app (MyGo)
 cmd/apigo-cli/        terminal runner (no UI imports)
 internal/bru/         .bru tokenizer, parser, AST, printer
+internal/opencollection/ OpenCollection YAML reader/writer
 internal/collection/  collection model, discovery, environments, watcher
 internal/vars/        variable scopes and interpolation
 internal/httpx/       request building, transports, cookies, timing

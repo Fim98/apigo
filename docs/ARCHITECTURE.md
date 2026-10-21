@@ -210,7 +210,9 @@ and cancellation are explicit. It emits progress events to the UI and a final
 - App state is mutated only on the main thread (through `Window.Update`). Worker
   results are immutable snapshots.
 - File watching delivers events on a goroutine; the app debounces, re-reads on
-  the main thread and invalidates only the affected subtree.
+  the main thread and invalidates only the affected subtree. Files above 2.5 MiB
+  are not parsed automatically (Bruno's watcher cap); the UI offers to open them
+  explicitly.
 - Never capture `*ui.Context`, elements or widget parts in a goroutine or app
   state. Capture `c.Services()` only for persistent callbacks.
 - Scripts run with `goja.Interrupt` on timeout; the goroutine is joined before
@@ -245,8 +247,8 @@ my-collection/
 apigo/
 ├── settings.json       preferences, theme, layout
 ├── state.json          open tabs, last collection, pane sizes
-├── history.db          bbolt: request history
-├── cookies.db          bbolt: per-collection cookie jars
+├── history.db          bbolt: request history (extension; Bruno has none)
+├── cookies.db          bbolt: global cookie jar (Bruno stores cookies globally)
 ├── cache/              response temp files (cleared on quit/age)
 ├── logs/               rotating diagnostic log (no secrets)
 └── recent.json         recent collections (paths only)

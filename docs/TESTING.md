@@ -19,6 +19,10 @@ implementation details.
 `make test-race` runs the same with the race detector. CI adds cross-platform
 builds and packaging.
 
+MyGo has no importable app-level GUI e2e harness (`internal/e2e` is internal to
+the framework). App smoke tests drive the built binary externally; the UI state
+machine is covered by `ui.NewTester` instead.
+
 ## 2. Conformance with Bruno
 
 The reference snapshot is Bruno 2.0.0 at
@@ -33,13 +37,17 @@ The reference snapshot is Bruno 2.0.0 at
   - `tests/**/fixtures/**/*.bru` for feature-specific syntax
 - `internal/collection/testdata/bruno/` — complete collection trees, including
   `bruno.json`, folder files, environments and `.env`.
+- `internal/opencollection/testdata/bruno/` — OpenCollection YAML trees
+  (`opencollection.yml`, `collection.yml`, `folder.yml`, item `.yml`,
+  environments) from Bruno's filestore specs and test collections.
 - `internal/script/testdata/bruno/` — scripting fixtures.
 - `internal/httpx/testdata/bruno/` — request/response cases derived from
   `packages/bruno-tests/collection/` and the Express testbench.
 
 Every copied file goes with the MIT notice in
 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md). Do not copy source code,
-only data/fixtures.
+only data/fixtures. Do not vendor a fixture above 2.5 MiB: Bruno's watcher
+refuses to parse it, and our loader must exercise the `ErrTooLarge` path instead.
 
 ### 2.2 Parser conformance
 

@@ -334,13 +334,14 @@ vars:post-response {
 ```bru
 assert {
   res.status: eq 200
-  res.body.id: isNumber
+  $res.body.id: isNumber
   res.body.name: eq "Ada"
   ~res.body.debug: isDefined
 }
 ```
 
-- Left side is a response expression.
+- Left side is a response expression; both `res.*` and the legacy `$res.*`
+  spelling are accepted.
 - Right side is `<operator> <operand>`; a missing operator defaults to `eq`.
 - `~` disables an assertion.
 - Operators are listed in [REQUEST_ENGINE.md](REQUEST_ENGINE.md#7-assertions-and-tests).
@@ -415,17 +416,12 @@ docs {
 `docs` is Markdown content, not parsed further. `example` blocks contain a
 request/response snapshot; see §5.
 
-### 4.13 `query` (collection.bru)
-
-`query` is a dictionary used by collection-level settings; preserve it even if
-this version does not surface it in the UI.
-
-### 4.14 `vars` and collection-level blocks
+### 4.13 `vars` and collection-level blocks
 
 `collection.bru` supports `meta`, `headers`, `auth`, `auth:<mode>`,
 `vars:pre-request`, `vars:post-response`, `script:pre-request`,
-`script:post-response`, `tests`, `docs` and `query`. `folder.bru` supports the
-same minus collection-only fields.
+`script:post-response`, `tests`, `docs` and the OAuth2 additional-parameter
+blocks. `folder.bru` supports `meta` plus the same request-default blocks.
 
 ## 5. `example` blocks
 
@@ -576,11 +572,17 @@ Formatting rules:
 - BOM is stripped; invalid UTF-8 is replaced with U+FFFD and reported as a
   warning (never silently corrupt on write: keep the original bytes if the
   user did not edit).
+- Files above 2.5 MiB are not parsed automatically (Bruno watcher cap); the
+  loader returns `ErrTooLarge` and the UI asks before loading.
 
 ## 9. Versioning and migration
 
-- The `.bru` format has no version field. `meta.type` and block names are the
-  compatibility surface.
+- The `.bru` format has no version field. `meta.type` (including `app`) and
+  block names are the compatibility surface.
+- Bruno validates the model with strict Yup schemas (`noUnknown(true)`) and
+  fails a file with unknown blocks. apigo preserves unknown data instead; this
+  is a deliberate, documented divergence (ADR-0002) and never changes known
+  fields.
 - New Bruno fields are preserved as unknown until implemented.
 - apigo may add **new** blocks only under an `apigo` namespace with an ADR, and
   only if Bruno ignores them safely. Prefer not adding any.
