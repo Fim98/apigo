@@ -322,3 +322,82 @@ func TestLoadMissingCollection(t *testing.T) {
 		t.Fatalf("error = %v, want ErrNotFound", err)
 	}
 }
+
+func TestResolveEnvironmentOwnVariableBeatsInheritedSecret(t *testing.T) {
+	byName := map[string]*Environment{
+		"Base": {
+			Name: "Base",
+			Vars: []Variable{{Name: "token", Enabled: true, Secret: true, Kind: VarString}},
+		},
+		"Local": {
+			Name:    "Local",
+			Extends: []string{"Base"},
+			Vars:    []Variable{{Name: "token", Value: "plain", Enabled: true, Kind: VarString}},
+		},
+	}
+
+	resolved, err := ResolveEnvironment(byName["Local"], byName)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(resolved) != 1 {
+		t.Fatalf("resolved = %+v", resolved)
+	}
+	// Bruno appends the environment's own variables after the inherited ones,
+	// so a plain override in the child wins even over an inherited secret.
+	if resolved[0].Value != "plain" || resolved[0].Secret {
+		t.Fatalf("token = %+v, want the child's plain value", resolved[0])
+	}
+}
+
+func TestResolveEnvironmentInheritedSecretBeatsInheritedPlain(t *testing.T) {
+	byName := map[string]*Environment{
+		"Base": {
+			Name: "Base",
+			Vars: []Variable{{Name: "token", Value: "plain", Enabled: true, Kind: VarString}},
+		},
+		"Shared": {
+			Name: "Shared",
+			Vars: []Variable{{Name: "token", Enabled: true, Secret: true, Kind: VarString}},
+		},
+		"Local": {
+			Name:    "Local",
+			Extends: []string{"Base", "Shared"},
+		},
+	}
+
+	resolved, err := ResolveEnvironment(byName["Local"], byName)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(resolved) != 1 || !resolved[0].Secret {
+		t.Fatalf("resolved = %+v, want the inherited secret to win", resolved)
+	}
+}
+
+func TestCollectionResolveEnvironmentUsesItsOwnIndex(t *testing.T) {
+	c := loadSample(t)
+	var local *Environment
+	for _, env := range c.Environments {
+		if env.Name == "Local" {
+			local = env
+		}
+	}
+	if local == nil {
+		t.Fatal("Local environment missing")
+	}
+	resolved, err := c.ResolveEnvironment(local)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	values := map[string]string{}
+	for _, v := range resolved {
+		values[v.Name] = v.Value
+	}
+	if values["baseUrl"] != "http://localhost:8080" || values["region"] != "eu" {
+		t.Fatalf("resolved = %+v", values)
+	}
+	if resolved, err := c.ResolveEnvironment(nil); err != nil || resolved != nil {
+		t.Fatalf("nil environment: %v, %v", resolved, err)
+	}
+}

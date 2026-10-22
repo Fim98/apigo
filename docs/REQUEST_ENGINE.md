@@ -47,18 +47,28 @@ Rules that are easy to get wrong:
 
 Lowest to highest:
 
-1. `process.env.*` (addressed explicitly, not merged into bare names)
-2. global environment (workspace-scoped)
-3. collection variables (`collection.bru` `vars:pre-request`)
-4. selected environment (including `extends`), then `--env-var` overrides
-5. folder variables (nearest folder first, then ancestors)
-6. request variables (`vars:pre-request`)
-7. OAuth2 credential variables (`$oauth2.<credentialsId>.<key>`)
-8. runtime variables (`bru.setVar`)
-9. prompt variable answers (`{{?Name}}`)
+1. global environment (workspace-scoped)
+2. collection variables (`collection.bru` / `request.variables` `vars:pre-request`)
+3. selected environment (including `extends`), then `--env-var` overrides
+4. folder variables (nearest folder first, then ancestors)
+5. request variables (`vars:pre-request`)
+6. OAuth2 credential variables (`$oauth2.<credentialsId>.<key>`)
+7. runtime variables (`bru.setVar`)
+8. prompt variable answers (`{{?Name}}`)
+
+`process.env.*` is not a layer. It is a separate namespace addressed
+explicitly, and it never participates in the order above.
 
 Important details:
 
+- `internal/vars` owns the order (`vars.Precedence()` and `vars.ForRequest`).
+  Within a layer the later value wins; `Load` skips disabled variables, so a
+  disabled request variable lets the folder value show through.
+- A name that matches exactly wins over dot-path traversal, which is what lets a
+  variable whose name contains dots resolve and what makes
+  `$oauth2.<credentialsId>.<key>` work. Otherwise the name is a path
+  (`user.address.city`, `items[0].name`) into a variable holding a JSON object
+  (a typed `@object` variable or a runtime object).
 - `process.env` is a separate namespace: `{{process.env.FOO}}` resolves from the
   OS environment overlaid with the collection `.env` (and workspace `.env` in the
   desktop). Only plain `.env` is loaded; `.env.*` files are inert in Bruno.

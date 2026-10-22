@@ -23,6 +23,7 @@ Commands:
   version    print the version
   fmt        rewrite .bru files in canonical form
   inspect    print a collection tree
+  vars       print the variables a request would see
   help       print this help
 
 The run, import and docs commands arrive with milestone M6; see docs/BACKLOG.md.
@@ -49,6 +50,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runFmt(args[1:], stdout, stderr)
 	case "inspect":
 		return runInspect(args[1:], stdout, stderr)
+	case "vars":
+		return runVars(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "apigo: unknown command %q\n\n%s", args[0], usage)
 		return 2

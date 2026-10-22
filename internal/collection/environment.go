@@ -133,16 +133,18 @@ func LoadEnvironments(ctx context.Context, root string) ([]*Environment, error) 
 
 // ResolveEnvironment flattens an environment and its extends chain into a single
 // variable list. Parents are applied before the environment itself, cycles are
-// reported instead of hanging, and a secret declaration wins over a non-secret
-// one with the same name.
+// reported instead of hanging, and among inherited variables a secret wins over
+// a non-secret of the same name. The environment's own variables always win over
+// anything it inherits, secret or not, which is what Bruno does: its own
+// variables are appended after the inherited ones.
 func ResolveEnvironment(env *Environment, byName map[string]*Environment) ([]Variable, error) {
 	var merged []Variable
 	index := map[string]int{}
 	visiting := map[string]bool{}
 	visited := map[string]bool{}
 
-	var apply func(e *Environment, path []string) error
-	apply = func(e *Environment, path []string) error {
+	var apply func(e *Environment, path []string, own bool) error
+	apply = func(e *Environment, path []string, own bool) error {
 		if visited[e.Name] {
 			return nil
 		}
@@ -160,15 +162,16 @@ func ResolveEnvironment(env *Environment, byName map[string]*Environment) ([]Var
 			if !ok {
 				continue
 			}
-			if err := apply(parent, append(path, e.Name)); err != nil {
+			if err := apply(parent, append(path, e.Name), false); err != nil {
 				return err
 			}
 		}
 
 		for _, v := range e.Vars {
 			if i, ok := index[v.Name]; ok {
-				if merged[i].Secret && !v.Secret {
-					// A secret declaration wins over a plain variable.
+				if !own && merged[i].Secret && !v.Secret {
+					// Among inherited variables a secret wins over a plain one;
+					// the environment's own variables are handled below.
 					continue
 				}
 				merged[i] = v
@@ -180,10 +183,24 @@ func ResolveEnvironment(env *Environment, byName map[string]*Environment) ([]Var
 		return nil
 	}
 
-	if err := apply(env, nil); err != nil {
+	if err := apply(env, nil, true); err != nil {
 		return nil, err
 	}
 	return merged, nil
+}
+
+// ResolveEnvironment flattens one of the collection's environments and its
+// extends chain. It is the entry point callers use; the package function exists
+// for tests and for callers holding their own environment index.
+func (c *Collection) ResolveEnvironment(env *Environment) ([]Variable, error) {
+	if env == nil {
+		return nil, nil
+	}
+	byName := make(map[string]*Environment, len(c.Environments))
+	for _, e := range c.Environments {
+		byName[e.Name] = e
+	}
+	return ResolveEnvironment(env, byName)
 }
 
 // loadEnvironments reads the environment files for a collection format.

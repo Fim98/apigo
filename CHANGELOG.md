@@ -35,6 +35,12 @@ All notable changes to apigo are documented here. The format is based on
   `data:`, auth may be a bare scalar, scripts are `before-request` /
   `after-response` / `tests` / `grpc:*`, environments carry `extends`, `color`,
   `secret: true` and `externalSecrets`.
+- Variable scopes (`internal/vars`): the eight-layer precedence from
+  REQUEST_ENGINE §2 (global, collection, environment, folder, request, OAuth2,
+  runtime, prompt), disabled-variable fall-through, nearest-folder-wins ordering,
+  `--env-var` overrides, and `process.env` as an explicit namespace. Lookups take
+  an exact name before a dot/array path, so `$oauth2.<id>.<field>` and object
+  variables both work.
 - Dotenv (`internal/collection`): `<collection>/.env` is read with npm dotenv
   v16 grammar (quotes, multiline values, `export`, `KEY: value`, comments) into
   `Collection.DotEnv`; `BuildProcessEnv` merges OS environment, workspace `.env`
@@ -56,11 +62,17 @@ All notable changes to apigo are documented here. The format is based on
   import/export, Git, persistence) and a provisional OpenCollection YAML spec.
 - Capability matrix corrections: dual-format collections, Git panel/history/i18n
   as extensions, no curl/HAR importer, OpenCollection write in M1.
+- `apigo vars` prints the variable layers a request would see, lowest priority
+  first, marking shadowed entries, masking secret values and listing `.env` by
+  name only.
 
 ### Changed
 
 - M1 now includes the OpenCollection writer, because new Bruno collections
   default to YAML.
+- Environment inheritance now matches Bruno: an environment's own variables beat
+  everything it inherits, while among inherited variables a secret still wins
+  over a plain one. Previously an inherited secret could not be overridden.
 
 ## [0.1.0] - 2026-10-21
 
