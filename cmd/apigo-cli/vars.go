@@ -157,6 +157,8 @@ func (o *varsOptions) apply(flag, value string, stderr io.Writer) int {
 // nodeAt finds a node by its slash-separated relative path. An empty path means
 // the collection root.
 func nodeAt(c *collection.Collection, rel string) (*collection.Node, error) {
+	// RelPath is always slash-separated; accept a Windows-style path too.
+	rel = strings.ReplaceAll(rel, "\\", "/")
 	rel = strings.TrimPrefix(strings.Trim(rel, "/"), "./")
 	if rel == "" {
 		if root := c.RootNode(); root != nil {

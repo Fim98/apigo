@@ -228,6 +228,18 @@ func TestVarsCommandErrors(t *testing.T) {
 	}
 }
 
+func TestVarsCommandAcceptsWindowsStylePath(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	if code := runVars([]string{"--request", `users\list.bru`, dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), "request: users/list.bru") {
+		t.Fatalf("output missing the request:\n%s", out.String())
+	}
+}
+
 func TestVarsCommandRootDefaults(t *testing.T) {
 	dir := varsCollection(t)
 
