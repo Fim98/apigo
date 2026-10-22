@@ -5,18 +5,18 @@ it at the end of every session, then verify with `make verify`.
 
 ## Snapshot
 
-- Date: 2026-10-21 (Asia/Shanghai)
+- Date: 2026-10-22 (Asia/Shanghai)
 - Branch: `main`, tracking `origin` (`git@github.com:Fim98/apigo.git`), level with
-  `origin/main` after the M1-08a push
+  `origin/main` after the M2-01 push
 - Commits: foundation `f199eb4`, research/doc corrections, `d99ef9c` (M0-13 agent
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli), `bd800ad`/`0c196ce` (watcher), `9573d8d`/`fcf2edc`
-  (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), dotenv (this session)
+  (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), `4fe3d81` (dotenv),
+  `be644c8` (variable scopes)
 - Version: `0.1.0` (foundation)
-- Milestone: **M1 — Language & collection store — complete** (parser, model,
-  loader, watcher, CLI, OpenCollection read/write, dotenv)
-- Next milestone: **M2 — Core request engine** (scopes, interpolation, URL/body
-  builders, HTTP transport)
+- Milestone: **M2 — Core request engine** — M2-01 (variable scopes) done;
+  interpolation, URL/body builders and the HTTP transport remain
+- Next: **M2-02 interpolation**, then M2-03 dynamic variables and M2-04 URL builder
 - Working tree: clean
 
 ## What is done
@@ -93,6 +93,14 @@ it at the end of every session, then verify with `make verify`.
       survives at block level, inside list items, inside `auth` (OAuth2
       `additional_params`) and in unknown action types. `apigo-cli fmt` now
       formats `.yml` collections and refuses YAML outside one.
+- [x] Variable scopes (M2-01): `internal/vars` resolves the eight layers
+      (global, collection, environment, folder, request, oauth2, runtime,
+      prompt) with disabled-variable fall-through and nearest-folder-wins.
+      `process.env` is an explicit namespace, not a layer. Lookups take an exact
+      name before a path, so `$oauth2.<id>.<field>` works and a JSON object value
+      can be traversed (`user.address.city`, `items[0].name`).
+      `apigo-cli vars` prints the layers with shadowing, masked secrets and
+      `.env` names.
 - [x] Dotenv (M1-08a): `<collection>/.env` parsed with npm dotenv v16 grammar
       into `Collection.DotEnv`; `.env.*` files are inert; a malformed line is a
       warning, never a failed load. `BuildProcessEnv`/`Collection.ProcessEnv`
@@ -167,18 +175,17 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M2-01 — variable scopes.**
-   Build `internal/vars`: process, collection, folder, environment, request and
-   runtime scopes with the precedence in REQUEST_ENGINE.md §2, table tests
-   against the documented order, and the `Collection.ProcessEnv` seam for
-   `process.env`.
-2. **M2-02 — interpolation.**
+1. **M2-02 — interpolation.**
    `{{var}}`, nested references (bounded, cycle guard, max depth 10), unresolved
    markers kept literally, escaping and `{{process.env.NAME}}`, on top of M2-01.
+2. **M2-03 — dynamic variables.**
+   `$uuid`, `$timestamp`, `$isoTimestamp`, `$randomInt` and the faker basics,
+   with a per-call memo so one string reuses a generated value, and a seeded
+   source for deterministic tests. `internal/vars/dynamic.go` is the
+   authoritative table.
 3. **M2-04 — URL builder.**
    Path params, query params, duplicates, disabled entries and `encodeUrl`;
-   wire-level tests comparing raw request URIs (M2-03 dynamic variables can
-   follow).
+   wire-level tests comparing raw request URIs.
 
 ## Blockers and open questions
 
@@ -253,6 +260,16 @@ test covers the nine vendored files.
   OpenCollection, Git repos and spec URLs.
 - **Strict schemas in Bruno** (`noUnknown(true)`) reject unknown fields. apigo
   preserves unknown blocks/keys instead; this is a deliberate divergence.
+- **Variables have eight layers, plus two namespaces.** `process.env.NAME` and
+  `$oauth2.<credentialsId>.<field>` are addressed by full name and never merge
+  into bare names. An exact name wins over dot-path traversal (lodash `get`
+  semantics), which is why a variable named `a.b` resolves and why object
+  traversal needs the exact head segment first.
+- **Environment inheritance order.** An environment's own variables beat
+  everything it inherits; among inherited variables a secret still wins over a
+  plain one. `Collection.ResolveEnvironment` does this and folds `extends`
+  chains; the package-level `ResolveEnvironment` is for callers with their own
+  index.
 - **Dotenv is not a scope.** `.env` feeds `process.env` only; a bare `{{name}}`
   never resolves from it, and `.env.*` files are inert. The parser matches npm
   dotenv v16 case by case, with two additive extensions (warnings with line
