@@ -137,13 +137,22 @@ Algorithm:
 3. Recursively interpolate the result while matches remain; guard cycles.
 4. Apply JSON escaping when interpolating into a JSON string context.
 
-Dynamic variables (Bruno's faker set, ~120 names) are grouped as: ids/time
+Dynamic variables are Bruno's faker set: the 120 names in
+`packages/bruno-common/src/utils/faker-functions.ts`, grouped as ids/time
 (`$guid`, `$timestamp`, `$isoTimestamp`, `$randomUUID`, `$randomNanoId`,
 `$randomInt`, `$randomBoolean`, `$randomSemver`, ...), internet, person,
-location, finance, company, commerce, date, file/system, text and misc. The Go
-implementation provides the complete list from Bruno 2.0.0's
-`faker-functions.ts`; see `internal/vars/dynamic.go` for the authoritative
-table.
+location, finance, company, commerce, date, file/system, text and misc.
+`internal/vars/dynamic.go` is the authoritative table; a test compares it with a
+snapshot of Bruno's list, so a missing, extra or renamed name fails.
+
+`vars.Dynamic` generates the values with its own small word lists: a name
+produces the same _kind_ of value (a version-4 UUID, a valid IPv4, an ISO
+timestamp) but not faker's exact vocabulary or distribution. `NewDynamic(seed)`
+is deterministic — the same seed and clock give the same sequence — and
+`NewDynamicWithClock(seed, now)` makes `$timestamp` and the date variables
+testable. The interpolator memoises each name per call, so a token repeated in one
+string yields one value. An unknown `$name` stays unresolved; `$oauth2.<id>.<field>`
+is not dynamic and resolves as a variable name.
 
 Prompt variables `{{?Prompt text}}` are collected from the prepared request,
 all variable scopes and proxy/cert config. The desktop app prompts before send;

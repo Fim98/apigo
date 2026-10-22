@@ -75,8 +75,8 @@ Phase values refer to [ROADMAP.md](ROADMAP.md) milestones.
 | B29 | HTTP/2                                                        | absent (HTTP/1.1 only)                | opt-in per request                                 | M11   | extension |
 | B30 | Stream large responses to disk                                | fully buffered                        | 10 MiB threshold                                   | M2    | extension |
 | B31 | DNS/localhost normalization                                   | IPv4/IPv6 probe                       | Resolver normalization                             | M2    | todo      |
-| B32 | Variables: precedence, typed, unresolved, prompt              | 9 scopes                              | Same + resolver tests                              | M2    | todo      |
-| B33 | ~120 dynamic faker variables                                  | faker v9                              | Go faker provider table                            | M2    | todo      |
+| B32 | Variables: precedence, typed, unresolved, prompt              | 9 scopes                              | Same + resolver tests                              | M2    | done      |
+| B33 | 120 dynamic faker variables                                   | faker v9                              | 120 names, own word lists (same shapes)            | M2    | divergent |
 | B34 | Request settings (redirects, timeout, omit, encode)           | `settings {}`                         | Same                                               | M2    | todo      |
 | B35 | Prompt variables in desktop, skip in runner                   | UI prompt / skip                      | Same                                               | M3/M6 | todo      |
 

@@ -62,6 +62,11 @@ All notable changes to apigo are documented here. The format is based on
   import/export, Git, persistence) and a provisional OpenCollection YAML spec.
 - Capability matrix corrections: dual-format collections, Git panel/history/i18n
   as extensions, no curl/HAR importer, OpenCollection write in M1.
+- Dynamic variables (`internal/vars`): all 120 `{{$name}}` names from Bruno's
+  faker table — ids, timestamps, internet, person, location, finance, company,
+  commerce, date, file/system, hacker and lorem — with a seeded generator for
+  reproducible runs (`NewDynamic`, `NewDynamicWithClock`) and shape-valid values.
+  `apigo vars --text ... --seed N` interpolates them from the CLI.
 - Interpolation (`internal/vars`): `{{name}}` tokens resolved through the
   scopes, `{{process.env.NAME}}`, `{{$oauth2.<id>.<field>}}` and `{{?Prompt}}`,
   with nested values bounded by a cycle check and a depth limit, unresolved

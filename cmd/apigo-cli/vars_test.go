@@ -369,3 +369,42 @@ func TestVarsCommandTextJSON(t *testing.T) {
 		t.Fatalf("unresolved = %v", payload.Unresolved)
 	}
 }
+
+func TestVarsCommandDynamicVariables(t *testing.T) {
+	dir := varsCollection(t)
+
+	var first, second, other bytes.Buffer
+	var errOut bytes.Buffer
+	if code := runVars([]string{"--text", "{{$randomUUID}}", "--seed", "5", dir}, &first, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if code := runVars([]string{"--text", "{{$randomUUID}}", "--seed", "5", dir}, &second, &errOut); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	if code := runVars([]string{"--text", "{{$randomUUID}}", "--seed", "6", dir}, &other, &errOut); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+
+	value := strings.TrimSpace(first.String())
+	if value == "" || strings.Contains(value, "{{") {
+		t.Fatalf("dynamic value = %q", value)
+	}
+	if second.String() != first.String() {
+		t.Fatalf("the same seed produced %q then %q", strings.TrimSpace(first.String()), strings.TrimSpace(second.String()))
+	}
+	if other.String() == first.String() {
+		t.Fatalf("different seeds produced the same value %q", value)
+	}
+}
+
+func TestVarsCommandSeedErrors(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	if code := runVars([]string{"--text", "{{$randomInt}}", "--seed", "abc", dir}, &out, &errOut); code != 2 {
+		t.Fatalf("exit %d, want 2", code)
+	}
+	if !strings.Contains(errOut.String(), "--seed wants an integer") {
+		t.Fatalf("stderr = %q", errOut.String())
+	}
+}

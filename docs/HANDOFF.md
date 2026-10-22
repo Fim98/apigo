@@ -12,12 +12,13 @@ it at the end of every session, then verify with `make verify`.
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli), `bd800ad`/`0c196ce` (watcher), `9573d8d`/`fcf2edc`
   (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), `4fe3d81` (dotenv),
-  `be644c8` (variable scopes), `e89ff4e` (interpolation)
+  `be644c8` (variable scopes), `e89ff4e` (interpolation), dynamic variables
+  (this session)
 - Version: `0.1.0` (foundation)
-- Milestone: **M2 — Core request engine** — M2-01 (scopes) and M2-02
-  (interpolation) done; dynamic variables, URL/body builders and the HTTP
-  transport remain
-- Next: **M2-03 dynamic variables**, then M2-04 URL builder and M2-05 body builders
+- Milestone: **M2 — Core request engine** — M2-01 (scopes), M2-02
+  (interpolation) and M2-03 (dynamic variables) done; URL/body builders and the
+  HTTP transport remain
+- Next: **M2-04 URL builder**, then M2-05 body builders and M2-07 transport
 - Working tree: clean
 
 ## What is done
@@ -108,6 +109,11 @@ it at the end of every session, then verify with `make verify`.
       unresolved tokens literal and reports them once, escapes for a JSON string
       context, masks secrets, and keeps the referenced type when the whole string
       is one token. `apigo vars --text` exposes it.
+- [x] Dynamic variables (M2-03): the 120 `{{$name}}` names from Bruno's
+      `faker-functions.ts` in `internal/vars/dynamic.go`, generated from our own
+      word lists (same value shapes, not faker's vocabulary). `NewDynamic(seed)`
+      and `NewDynamicWithClock(seed, now)` make a run reproducible; the
+      interpolator memoises a name per call. `apigo vars --text ... --seed N`.
 - [x] Dotenv (M1-08a): `<collection>/.env` parsed with npm dotenv v16 grammar
       into `Collection.DotEnv`; `.env.*` files are inert; a malformed line is a
       warning, never a failed load. `BuildProcessEnv`/`Collection.ProcessEnv`
@@ -182,18 +188,16 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M2-03 — dynamic variables.**
-   `$uuid`, `$timestamp`, `$isoTimestamp`, `$randomInt` and the faker basics,
-   with a per-call memo so one string reuses a generated value, and a seeded
-   source for deterministic tests. `internal/vars/dynamic.go` is the
-   authoritative table.
-2. **M2-04 — URL builder.**
+1. **M2-04 — URL builder.**
    Path params, query params, duplicates, disabled entries and `encodeUrl`;
    wire-level tests comparing raw request URIs.
-3. **M2-05 — body builders.**
+2. **M2-05 — body builders.**
    JSON, text, XML, SPARQL, GraphQL and form-urlencoded bodies with the right
    Content-Type and byte-exact output, using `InterpolateOptions.EscapeJSON` for
    JSON string contexts.
+3. **M2-07 — HTTP transport.**
+   Timeout, redirects, HTTP/1.1 baseline, keep-alive and header forwarding rules;
+   `httptest` suite, redirect loops terminate.
 
 ## Blockers and open questions
 
@@ -268,6 +272,10 @@ test covers the nine vendored files.
   OpenCollection, Git repos and spec URLs.
 - **Strict schemas in Bruno** (`noUnknown(true)`) reject unknown fields. apigo
   preserves unknown blocks/keys instead; this is a deliberate divergence.
+- **Dynamic values are shape-compatible, not faker-identical.** All 120 names
+  resolve, but the word lists are ours: a collection that asserts on a specific
+  faker value will not match. Determinism needs both a seed and a clock
+  (`NewDynamicWithClock`); with `time.Now` the timestamp names move.
 - **Interpolation edge cases are contracts.** Names are looked up as written (no
   trimming), a cycle keeps the token literal and reports it, the depth bound is 10
   (Bruno has none), and escaping applies to each substituted value rather than to

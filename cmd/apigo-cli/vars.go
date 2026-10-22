@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"apigo/internal/collection"
 	"apigo/internal/vars"
@@ -22,6 +24,7 @@ Flags:
   --request REL    request path relative to the collection root
   --set NAME=VALUE set or override an environment variable (repeatable)
   --text STRING    interpolate STRING instead of listing the layers
+  --seed N         seed the {{$dynamic}} variables (default: the clock)
   --json           print a machine-readable description
 
 Without --request the collection root is used, which shows the collection and
@@ -39,6 +42,8 @@ type varsOptions struct {
 	overrides   map[string]string
 	text        string
 	hasText     bool
+	seed        int64
+	hasSeed     bool
 	json        bool
 }
 
@@ -57,7 +62,7 @@ func runVars(args []string, stdout, stderr io.Writer) int {
 		case arg == "--help" || arg == "-h":
 			fmt.Fprint(stdout, varsUsage)
 			return 0
-		case arg == "--env" || arg == "--request" || arg == "--set" || arg == "--text":
+		case arg == "--env" || arg == "--request" || arg == "--set" || arg == "--text" || arg == "--seed":
 			if i+1 >= len(args) {
 				fmt.Fprintf(stderr, "apigo vars: %s needs a value\n\n%s", arg, varsUsage)
 				return 2
@@ -67,7 +72,8 @@ func runVars(args []string, stdout, stderr io.Writer) int {
 				return code
 			}
 		case strings.HasPrefix(arg, "--env=") || strings.HasPrefix(arg, "--request=") ||
-			strings.HasPrefix(arg, "--set=") || strings.HasPrefix(arg, "--text="):
+			strings.HasPrefix(arg, "--set=") || strings.HasPrefix(arg, "--text=") ||
+			strings.HasPrefix(arg, "--seed="):
 			name, value, _ := strings.Cut(arg, "=")
 			if code := opts.apply(name, value, stderr); code != 0 {
 				return code
@@ -162,6 +168,14 @@ func (o *varsOptions) apply(flag, value string, stderr io.Writer) int {
 	case "--text":
 		o.text = value
 		o.hasText = true
+	case "--seed":
+		seed, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			fmt.Fprintf(stderr, "apigo vars: --seed wants an integer, got %q\n", value)
+			return 2
+		}
+		o.seed = seed
+		o.hasSeed = true
 	}
 	return 0
 }
@@ -173,7 +187,15 @@ func (o *varsOptions) apply(flag, value string, stderr io.Writer) int {
 // `apigo vars --text ... | xargs curl` works; unresolved names are diagnostics
 // and go to stderr.
 func writeInterpolation(stdout, stderr io.Writer, set *vars.Set, opts varsOptions) int {
-	result := set.Interpolate(opts.text, vars.InterpolateOptions{MaskSecrets: true})
+	seed := time.Now().UnixNano()
+	if opts.hasSeed {
+		seed = opts.seed
+	}
+	dynamic := vars.NewDynamic(seed)
+	result := set.Interpolate(opts.text, vars.InterpolateOptions{
+		MaskSecrets: true,
+		Dynamic:     dynamic.Lookup,
+	})
 	if opts.json {
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
