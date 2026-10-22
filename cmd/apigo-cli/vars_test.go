@@ -265,3 +265,107 @@ func TestHelpMentionsVars(t *testing.T) {
 		t.Fatalf("help missing vars:\n%s", out.String())
 	}
 }
+
+func TestVarsCommandText(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	code := runVars([]string{"--env", "Local", "--request", "users/list.bru", "--text", "https://{{region}}/{{tenant}}", dir}, &out, &errOut)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	// Both the environment and the folder layer take part.
+	if got := strings.TrimSpace(out.String()); got != "https://local/users" {
+		t.Fatalf("text = %q", got)
+	}
+	if strings.Contains(errOut.String(), "unresolved") {
+		t.Fatalf("unexpected unresolved line: %q", errOut.String())
+	}
+
+	// A missing name is reported, and the command still succeeds.
+	out.Reset()
+	errOut.Reset()
+	code = runVars([]string{"--env", "Local", "--request", "users/list.bru", "--text", "{{region}}/{{nope}}", dir}, &out, &errOut)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if got := strings.TrimSpace(out.String()); got != "local/{{nope}}" {
+		t.Fatalf("stdout = %q, want the result alone so it can be piped", got)
+	}
+	if !strings.Contains(errOut.String(), "unresolved: nope") {
+		t.Fatalf("stderr = %q, want the unresolved names", errOut.String())
+	}
+}
+
+// TestVarsCommandTextMasksSecrets keeps a secret from reaching the terminal or a
+// piped command.
+func TestVarsCommandTextMasksSecrets(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	if code := runVars([]string{"--env", "Prod", "--text", "Key={{apiKey}}", dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if got := strings.TrimSpace(out.String()); got != "Key="+maskedValue {
+		t.Fatalf("text = %q", got)
+	}
+
+	// The JSON form carries the flag too.
+	out.Reset()
+	errOut.Reset()
+	if code := runVars([]string{"--json", "--env", "Prod", "--text", "{{apiKey}}", dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d", code)
+	}
+	var payload struct {
+		Text   string `json:"text"`
+		Secret bool   `json:"secret"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("decode: %v\n%s", err, out.String())
+	}
+	if payload.Text != maskedValue || !payload.Secret {
+		t.Fatalf("payload = %+v", payload)
+	}
+}
+
+// TestVarsCommandEmptyText checks that --text "" still selects interpolation
+// mode instead of falling back to the layer listing.
+func TestVarsCommandEmptyText(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	if code := runVars([]string{"--text", "", dir}, &out, &errOut); code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+	if got := strings.TrimSpace(out.String()); got != "" {
+		t.Fatalf("stdout = %q, want an empty result", got)
+	}
+	if strings.Contains(out.String(), "collection (") {
+		t.Fatalf("--text fell back to the layer listing:\n%s", out.String())
+	}
+}
+
+func TestVarsCommandTextJSON(t *testing.T) {
+	dir := varsCollection(t)
+
+	var out, errOut bytes.Buffer
+	code := runVars([]string{"--json", "--env", "Local", "--request", "users/list.bru", "--text", "{{shared}}-{{nope}}", dir}, &out, &errOut)
+	if code != 0 {
+		t.Fatalf("exit %d, stderr %q", code, errOut.String())
+	}
+
+	var payload struct {
+		Text       string   `json:"text"`
+		Kind       string   `json:"kind"`
+		Unresolved []string `json:"unresolved"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+		t.Fatalf("decode: %v\n%s", err, out.String())
+	}
+	if payload.Text != "request-{{nope}}" || payload.Kind != "string" {
+		t.Fatalf("payload = %+v", payload)
+	}
+	if strings.Join(payload.Unresolved, ",") != "nope" {
+		t.Fatalf("unresolved = %v", payload.Unresolved)
+	}
+}

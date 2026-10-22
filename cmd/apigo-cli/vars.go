@@ -21,11 +21,13 @@ Flags:
   --env NAME       resolve the named environment
   --request REL    request path relative to the collection root
   --set NAME=VALUE set or override an environment variable (repeatable)
+  --text STRING    interpolate STRING instead of listing the layers
   --json           print a machine-readable description
 
 Without --request the collection root is used, which shows the collection and
 environment layers. Secret values are masked, and .env is listed by name only;
-the OS environment is never dumped.
+the OS environment is never dumped. With --text the result is printed on its own,
+followed by any unresolved names; the exit code stays 0 either way.
 `
 
 const maskedValue = "********"
@@ -35,6 +37,8 @@ type varsOptions struct {
 	environment string
 	request     string
 	overrides   map[string]string
+	text        string
+	hasText     bool
 	json        bool
 }
 
@@ -53,7 +57,7 @@ func runVars(args []string, stdout, stderr io.Writer) int {
 		case arg == "--help" || arg == "-h":
 			fmt.Fprint(stdout, varsUsage)
 			return 0
-		case arg == "--env" || arg == "--request" || arg == "--set":
+		case arg == "--env" || arg == "--request" || arg == "--set" || arg == "--text":
 			if i+1 >= len(args) {
 				fmt.Fprintf(stderr, "apigo vars: %s needs a value\n\n%s", arg, varsUsage)
 				return 2
@@ -62,7 +66,8 @@ func runVars(args []string, stdout, stderr io.Writer) int {
 			if code := opts.apply(arg, args[i], stderr); code != 0 {
 				return code
 			}
-		case strings.HasPrefix(arg, "--env=") || strings.HasPrefix(arg, "--request=") || strings.HasPrefix(arg, "--set="):
+		case strings.HasPrefix(arg, "--env=") || strings.HasPrefix(arg, "--request=") ||
+			strings.HasPrefix(arg, "--set=") || strings.HasPrefix(arg, "--text="):
 			name, value, _ := strings.Cut(arg, "=")
 			if code := opts.apply(name, value, stderr); code != 0 {
 				return code
@@ -119,6 +124,10 @@ func runVars(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
+	if opts.hasText {
+		return writeInterpolation(stdout, stderr, set, opts)
+	}
+
 	if opts.json {
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
@@ -150,6 +159,40 @@ func (o *varsOptions) apply(flag, value string, stderr io.Writer) int {
 			return 2
 		}
 		o.overrides[name] = text
+	case "--text":
+		o.text = value
+		o.hasText = true
+	}
+	return 0
+}
+
+// writeInterpolation prints one interpolated string.
+//
+// Secrets are masked: this output is meant to be pasted into an issue as often as
+// it is piped into a command. The result goes to stdout alone, so
+// `apigo vars --text ... | xargs curl` works; unresolved names are diagnostics
+// and go to stderr.
+func writeInterpolation(stdout, stderr io.Writer, set *vars.Set, opts varsOptions) int {
+	result := set.Interpolate(opts.text, vars.InterpolateOptions{MaskSecrets: true})
+	if opts.json {
+		enc := json.NewEncoder(stdout)
+		enc.SetIndent("", "  ")
+		payload := struct {
+			Text       string   `json:"text"`
+			Kind       string   `json:"kind"`
+			Secret     bool     `json:"secret,omitempty"`
+			Unresolved []string `json:"unresolved,omitempty"`
+		}{Text: result.Text, Kind: string(result.Kind), Secret: result.Secret, Unresolved: result.Unresolved}
+		if err := enc.Encode(payload); err != nil {
+			fmt.Fprintf(stderr, "apigo vars: %v\n", err)
+			return 2
+		}
+		return 0
+	}
+
+	fmt.Fprintln(stdout, result.Text)
+	if len(result.Unresolved) > 0 {
+		fmt.Fprintf(stderr, "unresolved: %s\n", strings.Join(result.Unresolved, ", "))
 	}
 	return 0
 }

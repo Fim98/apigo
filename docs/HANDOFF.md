@@ -12,11 +12,12 @@ it at the end of every session, then verify with `make verify`.
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli), `bd800ad`/`0c196ce` (watcher), `9573d8d`/`fcf2edc`
   (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), `4fe3d81` (dotenv),
-  `be644c8` (variable scopes)
+  `be644c8` (variable scopes), interpolation (this session)
 - Version: `0.1.0` (foundation)
-- Milestone: **M2 — Core request engine** — M2-01 (variable scopes) done;
-  interpolation, URL/body builders and the HTTP transport remain
-- Next: **M2-02 interpolation**, then M2-03 dynamic variables and M2-04 URL builder
+- Milestone: **M2 — Core request engine** — M2-01 (scopes) and M2-02
+  (interpolation) done; dynamic variables, URL/body builders and the HTTP
+  transport remain
+- Next: **M2-03 dynamic variables**, then M2-04 URL builder and M2-05 body builders
 - Working tree: clean
 
 ## What is done
@@ -101,6 +102,12 @@ it at the end of every session, then verify with `make verify`.
       can be traversed (`user.address.city`, `items[0].name`).
       `apigo-cli vars` prints the layers with shadowing, masked secrets and
       `.env` names.
+- [x] Interpolation (M2-02): `Set.Interpolate` replaces `{{name}}` over the
+      scopes, `process.env`, `$oauth2.*` and `?Prompt` answers, expands nested
+      values with a cycle check and a depth bound (10, clamped at 100), keeps
+      unresolved tokens literal and reports them once, escapes for a JSON string
+      context, masks secrets, and keeps the referenced type when the whole string
+      is one token. `apigo vars --text` exposes it.
 - [x] Dotenv (M1-08a): `<collection>/.env` parsed with npm dotenv v16 grammar
       into `Collection.DotEnv`; `.env.*` files are inert; a malformed line is a
       warning, never a failed load. `BuildProcessEnv`/`Collection.ProcessEnv`
@@ -175,17 +182,18 @@ test covers the nine vendored files.
 
 ## Next three tasks
 
-1. **M2-02 — interpolation.**
-   `{{var}}`, nested references (bounded, cycle guard, max depth 10), unresolved
-   markers kept literally, escaping and `{{process.env.NAME}}`, on top of M2-01.
-2. **M2-03 — dynamic variables.**
+1. **M2-03 — dynamic variables.**
    `$uuid`, `$timestamp`, `$isoTimestamp`, `$randomInt` and the faker basics,
    with a per-call memo so one string reuses a generated value, and a seeded
    source for deterministic tests. `internal/vars/dynamic.go` is the
    authoritative table.
-3. **M2-04 — URL builder.**
+2. **M2-04 — URL builder.**
    Path params, query params, duplicates, disabled entries and `encodeUrl`;
    wire-level tests comparing raw request URIs.
+3. **M2-05 — body builders.**
+   JSON, text, XML, SPARQL, GraphQL and form-urlencoded bodies with the right
+   Content-Type and byte-exact output, using `InterpolateOptions.EscapeJSON` for
+   JSON string contexts.
 
 ## Blockers and open questions
 
@@ -260,6 +268,11 @@ test covers the nine vendored files.
   OpenCollection, Git repos and spec URLs.
 - **Strict schemas in Bruno** (`noUnknown(true)`) reject unknown fields. apigo
   preserves unknown blocks/keys instead; this is a deliberate divergence.
+- **Interpolation edge cases are contracts.** Names are looked up as written (no
+  trimming), a cycle keeps the token literal and reports it, the depth bound is 10
+  (Bruno has none), and escaping applies to each substituted value rather than to
+  the whole string. `MaskSecrets` is how a CLI or log path avoids printing a
+  credential.
 - **Variables have eight layers, plus two namespaces.** `process.env.NAME` and
   `$oauth2.<credentialsId>.<field>` are addressed by full name and never merge
   into bare names. An exact name wins over dot-path traversal (lodash `get`

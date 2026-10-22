@@ -62,9 +62,14 @@ All notable changes to apigo are documented here. The format is based on
   import/export, Git, persistence) and a provisional OpenCollection YAML spec.
 - Capability matrix corrections: dual-format collections, Git panel/history/i18n
   as extensions, no curl/HAR importer, OpenCollection write in M1.
+- Interpolation (`internal/vars`): `{{name}}` tokens resolved through the
+  scopes, `{{process.env.NAME}}`, `{{$oauth2.<id>.<field>}}` and `{{?Prompt}}`,
+  with nested values bounded by a cycle check and a depth limit, unresolved
+  tokens kept literally and reported, JSON-context escaping, and a typed result
+  when the whole string is one token.
 - `apigo vars` prints the variable layers a request would see, lowest priority
   first, marking shadowed entries, masking secret values and listing `.env` by
-  name only.
+  name only; `--text` interpolates one string and reports unresolved names.
 
 ### Changed
 

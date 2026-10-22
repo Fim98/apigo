@@ -148,6 +148,44 @@ table.
 Prompt variables `{{?Prompt text}}` are collected from the prepared request,
 all variable scopes and proxy/cert config. The desktop app prompts before send;
 the CLI and runner skip such requests with `status: skipped` and a reason.
+The `?` is syntax: answers are keyed by the plain prompt name.
+
+### 3.1 Interpolation as implemented (M2-02)
+
+`Set.Interpolate(text, Options)` returns a `Result{Text, Kind, Secret, Unresolved}`:
+
+- A token is `{{name}}`, and the name ends at the first `}}`. `{{}}`, `{{a}b}}`
+  and an unclosed `{{` stay literal and are not reported — Bruno's pattern is
+  `\{\{([^}]+)\}\}`. A name may _start_ with a brace, so `{{{a}}}` names `{a`,
+  which is what Bruno does too.
+- The name is looked up **as written**. Bruno does not trim inside the braces, so
+  `{{ name }}` looks up `" name "` and stays unresolved; apigo does the same.
+- An unresolved token keeps its literal text and its name is reported once, in
+  first-seen order (Bruno's collector de-duplicates as well). Interpolation never
+  fails.
+- A resolved value that still contains tokens is interpolated again. A name
+  already in flight is a cycle: the token stays literal and is reported.
+- Nested expansion stops after `MaxDepth` (default 10, clamped to 100) levels;
+  the remaining tokens stay literal and are reported, so a cutoff is never
+  silent. **Bruno has no depth bound**, only a visited set.
+- When the whole input is a single token, `Result.Kind` is the referenced
+  variable's type (`number`, `boolean`, `object`); any larger string is a string,
+  and an escaped value is a string.
+- `EscapeJSON` escapes each substituted value — backslash, quote, newline,
+  carriage return, tab — the same set and order as Bruno's `escapeJSONString`.
+  It applies to the whole value, so an object's own quotes are escaped when the
+  object goes into a JSON string; literal text around the token is untouched.
+  Bruno only escapes faker output, never variable values; escaping every value is
+  deliberate, because a value with a quote otherwise produces invalid JSON.
+- `MaskSecrets` replaces a secret variable with `MaskedValue` and sets
+  `Result.Secret`, so a caller can print a result without leaking a credential.
+- `Dynamic` is the M2-03 hook for `{{$name}}`, memoised per call so a token
+  repeated in one string yields the same value. Until it is set a dynamic token
+  is unresolved; `$oauth2.<id>.<field>` is unaffected because an exact variable
+  name wins before the resolver is consulted.
+- **Not reproduced:** substitution is not rescanned at concatenation boundaries.
+  A value that ends in `{{` next to a literal `}}` does not form a token, where
+  Bruno's second pass would join them.
 
 ## 4. Authentication
 
