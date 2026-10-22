@@ -12,8 +12,7 @@ it at the end of every session, then verify with `make verify`.
   skills), `31376a1` (issue tracker), then M1: `6a61281` (bru), `99dd0b7`
   (collection), `8f62487` (cli), `bd800ad`/`0c196ce` (watcher), `9573d8d`/`fcf2edc`
   (OpenCollection reader), `4c585eb`/`ae55e0a` (YAML writer), `4fe3d81` (dotenv),
-  `be644c8` (variable scopes), `e89ff4e` (interpolation), dynamic variables
-  (this session)
+  `be644c8` (variable scopes), `e89ff4e` (interpolation), `3716a5d` (dynamic variables)
 - Version: `0.1.0` (foundation)
 - Milestone: **M2 — Core request engine** — M2-01 (scopes), M2-02
   (interpolation) and M2-03 (dynamic variables) done; URL/body builders and the
